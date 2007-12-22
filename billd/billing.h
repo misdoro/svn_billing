@@ -20,6 +20,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <iostream>
+
 //#include <sys/endian.h>
 
 #include <signal.h>
@@ -29,6 +31,8 @@
 #include <mysql/mysql.h>
 
 #define MB_LENGTH 1048576
+
+using namespace std;
 
 // netflow structures
 typedef struct pheader {
@@ -106,7 +110,8 @@ typedef struct user {
 
 typedef struct configuration {
 	uint32_t netflow_port;
-        char * mysql_server;
+        uint16_t connectmsgport;
+	char * mysql_server;
         uint32_t mysql_port;
         char * mysql_username;
         char * mysql_password;
@@ -115,6 +120,7 @@ typedef struct configuration {
 	bool terminate;
         uint32_t stats_updated_time;
         uint32_t stats_update_interval;
+	
 };
     
 extern user * firstuser;
