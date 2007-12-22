@@ -7,6 +7,8 @@
 
 #include "billing.h"
 
+using namespace std;
+
 //Define mutexes:
 pthread_mutex_t users_table_m = PTHREAD_MUTEX_INITIALIZER;
 
@@ -39,6 +41,7 @@ int main(int argc, char** argv) {
 // here - read configuration
     cfg.terminate = 0;
     cfg.netflow_port = 12345;
+    cfg.connectmsgport = 10203;
     cfg.mysql_server = "127.0.0.1";
     cfg.mysql_port = 3306;    
     cfg.mysql_username = "root";
