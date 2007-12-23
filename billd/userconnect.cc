@@ -31,7 +31,7 @@ void * userconnectlistener (void *threadid) {
                 char buf[1024];
                 for (;;) {                    
                     rsize = recv(connectSocket, buf, 1024, 0);
-                    printf("receiveddata \n");
+                  //  printf("receiveddata \n");
                     if (rsize <= 0) {
                         break;
                     }
@@ -47,6 +47,7 @@ void * userconnectlistener (void *threadid) {
                     memcpy(buffer+recivied, &null, 1);
                     int start = 0, pos = 0;
                     int step = 0, conn_mode = 0;
+                    char * user_ip = NULL, * user_name = NULL; 
                     for (char * p = buffer; (strncmp(p, "\0",1) != 0); p++) {
                         if (strncmp(p, "\n",1) == 0) {
                             char * str = new char[pos-start+1];
@@ -73,19 +74,28 @@ void * userconnectlistener (void *threadid) {
                                 // connect :: conn type
                                 case 2: step++; break;
                                 // connect :: gateway
-                                case 3: printf("Gateway: '%s'\n", str);
-                                        step++;
+                                case 3: step++;
                                         break;
                                 // connect :: ip address
-                                case 4: printf("IP: '%s'\n", str);
+                                case 4: user_ip = new char[strlen(str)+1];
+                                        strcpy(user_ip, str);
                                         step++;
                                         break;
                                 // connect :: username
-                                case 5: printf("Username: '%s'\n", str);
-                                        step++;
+                                case 5: user_name = new char[strlen(str)+1];
+                                        strcpy(user_name, str);
+                                        printf("Username: %s, User ip: %s\n", user_name, user_ip);
+                                        if (conn_mode == CONNECT) {
+                                            onUserConnected(user_name, user_ip, 0);
+                                        }
+                                        if (conn_mode == DISCONNECT) {
+                                            onUserDisconnected(htonl(inet_addr(user_ip)));
+                                        }
+                                        if (user_ip != NULL) delete user_ip; user_ip = NULL;
+                                        if (user_name != NULL) delete user_name; user_name = NULL;                                        
                                         break;
                             }
-                            
+
                             delete str;
                             start = pos;
                         }

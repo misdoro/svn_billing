@@ -139,10 +139,10 @@ void * netflowlistener(void *threadid) {
                     printf("Warning! Zone not found! (uid: %u, srcaddr: %u, dscaddr %u)\n",currentuser->id, records[n].srcaddr, records[n].dstaddr);
                 };
             } else {
-                /*char * src = ipFromIntToStr(records[n].srcaddr);
+                char * src = ipFromIntToStr(records[n].srcaddr);
                 char * dst = ipFromIntToStr(records[n].dstaddr);
                 printf("Warning! User not found (srcaddr: %s, dscaddr %s)\n", src, dst);
-                delete src; delete dst;*/
+                delete src; delete dst;
             };
 	};
         // update values in database
