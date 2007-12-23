@@ -1,21 +1,17 @@
 #include "billing.h"
-#define MAX_MSG 100
+#define MAX_MSG 8192
 #define LINE_ARRAY_SIZE (MAX_MSG+1)
 #define CONNECT 1
 #define DISCONNECT 2
 
 using namespace std;
 
-void *userconnectlistener (void *threadid) {
-	int *tid;
-	tid = (int*)threadid;
-	printf("In thread: created userconnect thread %d\n", tid);
+void * userconnectlistener (void *threadid) {
+	printf("In thread: created userconnect thread\n");
 	int listenSocket, connectSocket, length;
 	struct sockaddr_in server;
 	struct sockaddr_in client;
 	socklen_t fromlen;
-	
-	char linebuffer[LINE_ARRAY_SIZE];
 
 	listenSocket=socket(AF_INET, SOCK_STREAM, 0);
 	length = sizeof(server);
@@ -28,40 +24,76 @@ void *userconnectlistener (void *threadid) {
 	while (1) {
 		fromlen=sizeof(client);
 		//Wait for connection:
-		std::cout<<"listeningsocket"<< std::endl;
 		connectSocket = accept(listenSocket,(struct sockaddr *) &client, &fromlen);
-		memset(linebuffer, 0x0, LINE_ARRAY_SIZE);	
 		//Read data from connection, handle connecting and disconnecting users:
-		while (recv(connectSocket, linebuffer, MAX_MSG, 0) > 0) {
-			int action=0;
-			int step=0;
-			//Look for type string:
-			if (linebuffer[1]=='c') 
-			{
-				action=CONNECT;
-				std::cout<<"Got connect"<< std::endl;
-			}
-			else if (linebuffer[1]=='d')
-			{
-				action=DISCONNECT;
-				std::cout<<"Got disconnect"<< std::endl;
-			}
-			else if (action==CONNECT)
-			{
-				step++;
-				if (step==4){
-					std::cout<<"Got ip"<< linebuffer<< std::endl;
-				};
-				if (step==5){
-                                        std::cout<<"Got user"<< linebuffer<< std::endl;
-                                };
-			}
-			else if (action==DISCONNECT)
-			{
-			};
-			std::cout<<"Got data"<<linebuffer<< std::endl;
-			memset(linebuffer, 0x0, LINE_ARRAY_SIZE);
-		}
+                int recivied = 0, rsize = 0;
+                char * buffer = NULL;
+                char buf[1024];
+                for (;;) {                    
+                    rsize = recv(connectSocket, buf, 1024, 0);
+                    printf("receiveddata \n");
+                    if (rsize <= 0) {
+                        break;
+                    }
+                    buffer = (char*) realloc(buffer, recivied + rsize);
+                    memcpy(buffer+recivied, &buf[0], rsize);
+                    recivied += rsize;                    
+                }
+                shutdown(connectSocket, 2);
+                close(connectSocket);
+                if (buffer != NULL) {
+                    buffer = (char*) realloc(buffer, recivied + 1);
+                    char null = '\0';
+                    memcpy(buffer+recivied, &null, 1);
+                    int start = 0, pos = 0;
+                    int step = 0, conn_mode = 0;
+                    for (char * p = buffer; (strncmp(p, "\0",1) != 0); p++) {
+                        if (strncmp(p, "\n",1) == 0) {
+                            char * str = new char[pos-start+1];
+                            memcpy(str, p-pos+start, pos-start);
+                            memcpy(str+pos-start, &null ,1);                            
+                            p++;
+                            switch (step) {
+                                // get action
+                                case 0: if (strcmp(str, "connect") == 0) {
+                                            printf ("Some connected!\n");
+                                            step = 1;
+                                            conn_mode = CONNECT;
+                                        } else if (strcmp(str, "disconnect") == 0) {
+                                            printf ("Some disconnected!\n");
+                                            step = 1;
+                                            conn_mode = DISCONNECT;
+                                        } else {
+                                            printf ("Warning: Invalid data received (%s)!\n", str);
+                                            step = -10;
+                                        }
+                                        break;
+                                // connect :: interface
+                                case 1: step++; break;
+                                // connect :: conn type
+                                case 2: step++; break;
+                                // connect :: gateway
+                                case 3: printf("Gateway: '%s'\n", str);
+                                        step++;
+                                        break;
+                                // connect :: ip address
+                                case 4: printf("IP: '%s'\n", str);
+                                        step++;
+                                        break;
+                                // connect :: username
+                                case 5: printf("Username: '%s'\n", str);
+                                        step++;
+                                        break;
+                            }
+                            
+                            delete str;
+                            start = pos;
+                        }
+                        pos++;
+                    }                    
+                    free(buffer);
+                }
+
 	};
 	
 	pthread_exit(NULL);

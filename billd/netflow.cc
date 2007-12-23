@@ -65,7 +65,7 @@ void * netflowlistener(void *threadid) {
     struct sockaddr_in from;
     socklen_t fromlen;
     char buf[1470];
-    printf("Created thread %d\n", tid);
+    printf("Created thread\n");
     sock=socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) err_func("Opening socket");
 
