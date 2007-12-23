@@ -61,29 +61,40 @@ void makeDBready() {
     delete sql;
 }
 
-user * onUserConnected(uint32_t dst_ip, uint32_t real_ip) {
-    char * sql;
+user * onUserConnected(char * username, char * user_ip, uint32_t real_ip) {
+    uint32_t u_ip = htonl(inet_addr(user_ip));
+    for (user * u = firstuser; u != NULL; u = u->next) {
+        if (u->user_ip == u_ip ) {
+            printf("User with ip %s already connected (id=%i)\n", user_ip, u->id);
+            return NULL;
+        }
+    }
+    
+    char sql[32768];
     MYSQL_RES * result;
     // get user info
-    sql = new char[1024];
-    char * str_ip = ipFromIntToStr(dst_ip); // user ip
-    sprintf(sql, "SELECT id, debit, kredit FROM users WHERE user_ip='%s' LIMIT 1", str_ip);
+    sprintf(sql, "SELECT id, debit, kredit, user_ip FROM users WHERE login='%s' LIMIT 1", username);
     mysql_query(cfg.myconn, sql);
-    delete str_ip;  delete sql;
     result = mysql_store_result(cfg.myconn);
     if (mysql_num_rows(result) == 0) {
-        printf ("Warning! User with ip %s not found in database\n", ipFromIntToStr(dst_ip));
+        printf ("Warning! User with name %s not found in database\n", username);
 // !!! - drop user here
         return NULL;
     }
     MYSQL_ROW row = mysql_fetch_row(result);
+    if (inet_addr(user_ip) != inet_addr(row[3])) {
+        printf ("Warning! User ip %s for connected user '%s' is not correct. (%s in database).\n", user_ip, username, row[3]);
+// !!! - drop user here
+        mysql_free_result(result);
+        return NULL;
+    }
     // create user structure
     user * newuser = new user;
     newuser->next = NULL;
     newuser->id = atoi(row[0]);
     newuser->user_debit = atof(row[1]);
     newuser->user_kredit = atof(row[2]);
-    newuser->user_ip = dst_ip;
+    newuser->user_ip = htonl(inet_addr(row[3]));    
     newuser->first_user_zone = NULL;
     newuser->first_zone_group = NULL;
     newuser->debit_changed = 0;
@@ -91,10 +102,8 @@ user * onUserConnected(uint32_t dst_ip, uint32_t real_ip) {
     mysql_free_result(result);
     
     // get user groups
-    sql = new char[1024];
     sprintf(sql, "SELECT group_id FROM usergroups WHERE user_id=%i LIMIT 128", newuser->id);
     mysql_query(cfg.myconn, sql);
-    delete sql;
     result = mysql_store_result(cfg.myconn);
     if (mysql_num_rows(result) == 0) {
         printf ("Warning! No groups for user %i found.\n", newuser->id);
@@ -120,15 +129,12 @@ user * onUserConnected(uint32_t dst_ip, uint32_t real_ip) {
         }
         printf ("User %i. Group %i\n", newuser->id, newgroup->id);
         // insert statistics fields
-        sql = new char[2048];
         sprintf(sql, "INSERT INTO statistics (`id`, `user_id`, `real_ip`, `taken_ip`, `ip_digit`, `zone_group_id`, `traf_in`, `traf_out`, `traf_in_money`, `sess_start`, `sess_end`, `connected`)");
-        sprintf(sql, "%s  VALUES (NULL, %lu, %lu, %lu, %u, %u, 0, 0, 0, CURRENT_TIMESTAMP, '0000-00-00 00:00:00', 1) ",sql, newuser->id, real_ip, dst_ip, 0, newgroup->id );
+        sprintf(sql, "%s  VALUES (NULL, %lu, %lu, %lu, %u, %u, 0, 0, 0, CURRENT_TIMESTAMP, '0000-00-00 00:00:00', 1) ",sql, newuser->id, real_ip, newuser->user_ip, 0, newgroup->id );
         mysql_query(cfg.myconn, sql);
-        delete sql;
     }
     mysql_free_result(result);
     // load zones - create sql query
-    sql = new char[32768];
     sprintf(sql, "SELECT allzones.id, zone_groups.group_id, allzones.ip, allzones.mask, allzones.dstport, zone_groups.mb_cost FROM allzones INNER JOIN zone_groups ON zone_groups.zone_id = allzones.id WHERE ");
     for (zone_group * p = newuser->first_zone_group; (p!=NULL); p = p->next ) {
         sprintf(sql, "%s (zone_groups.group_id = %i)",sql, p->id);
@@ -136,7 +142,6 @@ user * onUserConnected(uint32_t dst_ip, uint32_t real_ip) {
     }
     sprintf(sql, "%s ORDER BY zone_groups.priority DESC",sql);
     mysql_query(cfg.myconn, sql);
-    delete sql;
     result = mysql_store_result(cfg.myconn);
     while ((row = mysql_fetch_row(result)) != NULL) {
         // create new cost zone
@@ -150,7 +155,7 @@ user * onUserConnected(uint32_t dst_ip, uint32_t real_ip) {
         newzone->zone_mb_cost = atof(row[5]);
         newzone->zone_in_bytes = 0;
         newzone->zone_out_bytes = 0;
-        printf("Loaded zone. id=%i, zone_group_id=%i, ip=%s\n", newzone->id, newzone->zone_group_id, ipFromIntToStr(newzone->zone_ip) );
+        //printf("Loaded zone. id=%i, zone_group_id=%i, ip=%s\n", newzone->id, newzone->zone_group_id, ipFromIntToStr(newzone->zone_ip) );
         if (newuser->first_user_zone == NULL) {
             newuser->first_user_zone = newzone;
         } else {
@@ -160,47 +165,83 @@ user * onUserConnected(uint32_t dst_ip, uint32_t real_ip) {
         }        
     }
     mysql_free_result(result);    
-    
+    printf("Zones loaded.\n");
     // add user to list
     pthread_mutex_lock (&users_table_m);
     addUser(newuser);
     pthread_mutex_unlock (&users_table_m);
-    return NULL;
+    printf("User added.\n");
+    return newuser;
 }
-/*
+
 void onUserDisconnected(uint32_t user_ip) {
     pthread_mutex_lock (&users_table_m);
-    // save user information
-    for (user * u = firstuser; u != NULL; u = u->next) {
-        if (u->user_ip == user_ip) {
-            
+    char sql[1024];
+    // get user with this ip
+    user * current_u = NULL;
+    int user_found = 0;
+    for (current_u = firstuser; current_u != NULL; current_u = current_u->next) {
+        if (current_u->user_ip == user_ip) {
+            user_found = 1;
+            break;
         }
     }
-        for (zone_group * p = u->first_zone_group; p != NULL; p = p->next) {
-            if (p->group_changed == 1) {
-                char * sql = new char[1024];
-                uint64_t in_bytes = p->in_bytes;
-                uint64_t out_bytes = p->out_bytes;
-                uint32_t pid = p->id;
-                uint32_t uid = u->id;
-                float traf_in_money = p->in_mb_cost_total;
-                sprintf(sql, "UPDATE statistics SET traf_in=%lu, traf_out=%lu, traf_in_money=%f WHERE (user_id=%lu) AND (zone_group_id=%lu) AND (connected=1)", in_bytes, out_bytes, traf_in_money, uid, pid);
-                mysql_query(cfg.myconn, sql);
-                printf("%s\n",sql);
-                delete sql;
-                p->group_changed = 0;
-            }
-        }
-        if (u->debit_changed == 1) {
-            u->debit_changed = 0;
-            char * sql = new char[1024];
-            sprintf(sql, "UPDATE users SET debit=%f WHERE id=%u", u->user_debit,u->id);
-            mysql_query(cfg.myconn, sql);
+        
+    if (user_found == 0) {
+        printf("Warning! User with ip %lu not found!\n", user_ip);
+        return;
+    }
+    // store user information in database
+    for (zone_group * p = current_u->first_zone_group; p != NULL; p = p->next) {
+        if (p->group_changed == 1) {
+            uint64_t in_bytes = p->in_bytes;
+            uint64_t out_bytes = p->out_bytes;
+            uint32_t pid = p->id;
+            uint32_t uid = current_u->id;
+            float traf_in_money = p->in_mb_cost_total;
+            sprintf(sql, "UPDATE statistics SET traf_in=%llu, traf_out=%llu, traf_in_money=%f, connected=0, sess_end=CURRENT_TIMESTAMP  WHERE (user_id=%lu) AND (zone_group_id=%lu) AND (connected=1)", in_bytes, out_bytes, traf_in_money, uid, pid);
             printf("%s\n",sql);
-            delete sql;
+            mysql_query(cfg.myconn, sql);
         }
     }
-    // remove user here
-    
+    sprintf(sql, "UPDATE users SET debit=%f WHERE id=%u", current_u->user_debit, current_u->id);
+    mysql_query(cfg.myconn, sql);
+    // remove user from our tables
+    // free memory stored for zone_groups
+    zone_group * previous_zone_group;
+    for (zone_group * p = current_u->first_zone_group; p != NULL; ) {
+        previous_zone_group = p;
+        p = p->next;
+        delete previous_zone_group;
+    }
+    // free memory stored for user_zones
+    user_zone * previous_zone;
+    for (user_zone * p = current_u->first_user_zone; p != NULL; ) {
+        previous_zone = p;
+        p = p->next;
+        delete previous_zone;
+    }
+    printf("Removing user %i...", current_u->id);
+    // remove user
+    if (firstuser->user_ip == user_ip) {
+        user * previous_u = firstuser;
+        firstuser = firstuser->next;
+        delete previous_u;
+        printf("OK\n");
+    } else {
+        for (user * u = firstuser; u != NULL;) {
+            if (u->user_ip == user_ip) {
+                user * previous_u = u;
+                u = u->next;
+                if (u != NULL) {
+                    previous_u = u->next;
+                }
+                delete u;
+                printf("OK\n");
+                break;
+            }
+        }        
+    }   
     pthread_mutex_unlock (&users_table_m);
-}*/
+}
+

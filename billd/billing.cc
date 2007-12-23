@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
         err_func("Error. Could not connect to database.\n");
     }
     makeDBready();
-    onUserConnected(-1062729719, 0);
+   /* onUserConnected(-1062729719, 0);
     onUserConnected(-1062729720, 0);
     onUserConnected(-1062729718, 0);
     onUserConnected(-1062729717, 0);
@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     onUserConnected(-1062729724, 0);
     onUserConnected(-1062729725, 0);
     onUserConnected(-1062729726, 0);
-    
+    */
 // here - fork application - if configuration right
 /*    pid_t pid;
     if ((pid = fork()) < 0) {

@@ -138,7 +138,8 @@ user_zone * getflowzone(user * curr_user, uint32_t dst_ip);
 MYSQL * connectdb ();
 
 char * ipFromIntToStr(uint32_t ip);
-user * onUserConnected(uint32_t dst_ip, uint32_t real_ip);
+user * onUserConnected(char * username, char * user_ip, uint32_t real_ip);
+void onUserDisconnected(uint32_t user_ip);
 void makeDBready();
 #endif	/* _BILLING_H */
 
