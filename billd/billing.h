@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <cstring>
 #include <iostream>
 
 //#include <sys/endian.h>
