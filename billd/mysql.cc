@@ -52,13 +52,14 @@ void * statsupdater(void *threadid) {
     for (user * u = firstuser; u != NULL;) {
         if (u->die_time == 0) continue;
         if ((time(NULL) - u->die_time) > cfg.die_time_interval) {
-            // remove died user
+            // remove dead user
             next_u = u->next;
             removeUser(u);
             u = next_u;
             continue;
-        }
-        u = u->next;
+        }else{
+            u = u->next;
+	};
     }
     pthread_mutex_unlock (&users_table_m);
     sleep(1);

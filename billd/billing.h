@@ -147,5 +147,6 @@ char * ipFromIntToStr(uint32_t ip);
 user * onUserConnected(char * username, char * user_ip, uint32_t real_ip);
 void onUserDisconnected(uint32_t user_ip);
 void makeDBready();
+void removeUser(user * current_u);
 #endif	/* _BILLING_H */
 
