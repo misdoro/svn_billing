@@ -109,7 +109,7 @@ user * onUserConnected(char * username, char * user_ip, uint32_t real_ip) {
     char sql[32768];
     MYSQL_RES * result;
     // get user info
-    sprintf(sql, "SELECT id, debit, kredit, user_ip FROM users WHERE login='%s' LIMIT 1", username);
+    sprintf(sql, "SELECT id, debit, credit, user_ip FROM users WHERE login='%s' LIMIT 1", username);
     mysql_query(cfg.myconn, sql);
     result = mysql_store_result(cfg.myconn);
     if (mysql_num_rows(result) == 0) {
@@ -129,13 +129,13 @@ user * onUserConnected(char * username, char * user_ip, uint32_t real_ip) {
     newuser->next = NULL;
     newuser->id = atoi(row[0]);
     newuser->user_debit = atof(row[1]);
-    newuser->user_kredit = atof(row[2]);
+    newuser->user_credit = atof(row[2]);
     newuser->user_ip = htonl(inet_addr(row[3]));    
     newuser->first_user_zone = NULL;
     newuser->first_zone_group = NULL;
     newuser->debit_changed = 0;
     newuser->die_time = 0;
-        printf("User info - id:%s, debit:%s, kredit:%s\n", row[0], row[1], row[2]);
+        printf("User info - id:%s, debit:%s, credit:%s\n", row[0], row[1], row[2]);
     mysql_free_result(result);
     
     // get user groups
