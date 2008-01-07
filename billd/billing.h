@@ -104,24 +104,30 @@ typedef struct user {
 	uint32_t session_id;
 	uint32_t session_start_time;
 	uint32_t session_end_time;
+        uint32_t die_time;
         bool debit_changed;
 	user_zone * first_user_zone;
         zone_group * first_zone_group;
 };
 
 typedef struct configuration {
+        // listeners configuration
 	uint32_t netflow_port;
         uint16_t connectmsgport;
+        // MySql configuration
 	char * mysql_server;
         uint32_t mysql_port;
         char * mysql_username;
         char * mysql_password;
         char * mysql_database;
         MYSQL * myconn;
+        // terminate application
 	bool terminate;
+        // put stats into DB
         uint32_t stats_updated_time;
         uint32_t stats_update_interval;
-	
+        // to remove disconnnected users
+        uint32_t die_time_interval; 
 };
     
 extern user * firstuser;

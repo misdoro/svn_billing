@@ -31,7 +31,6 @@ void * userconnectlistener (void *threadid) {
                 char buf[1024];
                 for (;;) {                    
                     rsize = recv(connectSocket, buf, 1024, 0);
-                  //  printf("receiveddata \n");
                     if (rsize <= 0) {
                         break;
                     }
@@ -100,7 +99,7 @@ void * userconnectlistener (void *threadid) {
                             start = pos;
                         }
                         pos++;
-                    }                    
+                    }
                     free(buffer);
                 }
 
