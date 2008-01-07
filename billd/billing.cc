@@ -31,12 +31,6 @@ void mysigterm (int sig) {
 }
 
 int main(int argc, char** argv) {
-    /*uint64_t in=10;
-    in=in << 10;
-    in=in << 10;
-    in=in << 10;
-    printf("%llu\n", in);
-    */
     mystdout = stdout;
 // here - read configuration
     cfg.terminate = 0;
@@ -47,9 +41,10 @@ int main(int argc, char** argv) {
     cfg.mysql_username = "root";
     cfg.mysql_database = "billing";
     cfg.mysql_password = "";
+    cfg.die_time_interval = 30;
     // minimum time (in sec) before save stats to database
     cfg.stats_update_interval = 25;
-    if (connectdb () == NULL) {
+    if (connectdb() == NULL) {
         err_func("Error. Could not connect to database.\n");
     }
     makeDBready();

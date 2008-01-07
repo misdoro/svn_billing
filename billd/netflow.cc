@@ -145,37 +145,7 @@ void * netflowlistener(void *threadid) {
                 delete src; delete dst;
             };
 	};
-        // update values in database
-      if ((time(NULL) - cfg.stats_updated_time) > cfg.stats_update_interval) {
-      //  printf("t:%u\n", time(NULL));
-        cfg.stats_updated_time = time(NULL);
-        for (user * u = firstuser; u != NULL; u = u->next) {
-            for (zone_group * p = u->first_zone_group; p != NULL; p = p->next) {
-                if (p->group_changed == 1) {
-                    char * sql = new char[1024];
-                    uint64_t in_bytes = p->in_bytes;
-                    uint64_t out_bytes = p->out_bytes;
-                    uint32_t pid = p->id;
-                    uint32_t uid = u->id;
-                    float traf_in_money = p->in_mb_cost_total;
-                    sprintf(sql, "UPDATE statistics SET traf_in=%llu, traf_out=%llu, traf_in_money=%f WHERE (user_id=%lu) AND (zone_group_id=%lu) AND (connected=1)", in_bytes, out_bytes, traf_in_money, uid, pid);
-                    mysql_query(cfg.myconn, sql);
-                    printf("%s\n",sql);
-                    delete sql;
-                    p->group_changed = 0;                    
-                }
-            }
-            if (u->debit_changed == 1) {
-                 u->debit_changed = 0;
-                 char * sql = new char[1024];
-                 sprintf(sql, "UPDATE users SET debit=%f WHERE id=%u", u->user_debit,u->id);
-                 mysql_query(cfg.myconn, sql);
-                 printf("%s\n",sql);
-                 delete sql;                
-            }
-        }
-      }
-        
+    
         pthread_mutex_unlock (&users_table_m);      
    };
     pthread_exit(NULL);
