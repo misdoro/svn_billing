@@ -100,7 +100,8 @@ typedef struct user {
         uint32_t user_ip;        
 //        uint32_t user_ip_digit;
 	double user_debit;
-        double user_kredit;
+	double user_debit_diff;
+        double user_credit;
 	uint32_t session_id;
 	uint32_t session_start_time;
 	uint32_t session_end_time;
