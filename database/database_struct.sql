@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS `sessions`	(
 	`called_ident` varchar(255) NOT NULL default '', /*called ID, contains hostname and OS info ]:-> */
 	`sess_start` timestamp NOT NULL default CURRENT_TIMESTAMP,
 	`sess_end` timestamp NOT NULL default '0000-00-00 00:00:00',
-	`connected` varchar(1) NOT NULL default '0',
+	`state` tinyint unsigned NOT NULL default '0',
 	PRIMARY KEY  (`id`),
 	key `user_id` (`user_id`),
 	key `user_name` (`user_name`),
@@ -142,16 +142,3 @@ CREATE TABLE IF NOT EXISTS `userpacks` (
 	key `pack_id` (`pack_id`),
 	key `date_on` (`date_on`),
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
