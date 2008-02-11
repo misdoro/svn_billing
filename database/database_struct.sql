@@ -52,17 +52,18 @@ CREATE TABLE IF NOT EXISTS `sessions`	(
 	`sess_end` timestamp NOT NULL default '0000-00-00 00:00:00',
 	`state` tinyint unsigned NOT NULL default '0',
 	PRIMARY KEY  (`id`),
+	UNIQUE KEY `sess_id` (`session_id`(7)),
 	key `user_id` (`user_id`),
 	key `user_name` (`user_name`),
-	key `caller` (`called_ip`,`called_mac`),
-)
-
+	key `caller` (`called_ip`,`called_mac`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 /*
 Table for per-zone statistics (non summary)
 */
 CREATE TABLE IF NOT EXISTS `statistics` (
 	`id` int unsigned NOT NULL auto_increment,		/*record ID*/
+	`user_id` int unsigned NOT NULL default '0',
 	`zone_group_id` int unsigned  NOT NULL,
 	`traf_in` int unsigned NOT NULL default '0',
 	`traf_out` int unsigned NOT NULL default '0',
@@ -79,6 +80,7 @@ Table for per-zone statistics (per-session summary)
 */
 CREATE TABLE IF NOT EXISTS `session_statistics` (
 	`id` int unsigned NOT NULL auto_increment,		/*record ID*/
+	`user_id` int unsigned NOT NULL default '0',
 	`zone_group_id` int unsigned  NOT NULL,
 	`traf_in` bigint unsigned NOT NULL default '0',
 	`traf_out` bigint unsigned NOT NULL default '0',
@@ -140,5 +142,5 @@ CREATE TABLE IF NOT EXISTS `userpacks` (
 	PRIMARY KEY  (`id`),
 	key `user_id` (`user_id`),
 	key `pack_id` (`pack_id`),
-	key `date_on` (`date_on`),
-)
+	key `date_on` (`date_on`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
