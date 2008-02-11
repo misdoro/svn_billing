@@ -6,17 +6,17 @@ use DBI; use DBD::mysql
 require "funcs.pl";
 
 #LDAP options:
-$ldap_server='server2';
-my $ldap_binddn='uid=billing,ou=admins,dc=openlan,dc=nnov,dc=ru';
-my $ldap_searchbase='ou=users,dc=openlan,dc=nnov,dc=ru';
-my $ldap_bindpass='vOVWpAk2g6';
+my $ldap_server=$conf_hash{'ldap_server'};
+my $ldap_binddn=$conf_hash{'ldap_binddn'};
+my $ldap_searchbase=$conf_hash{'ldap_searchbase'};
+my $ldap_bindpass=$conf_hash{'ldap_bindpass'};
 
 #MySQL options:
-my $db_name='billing';
-my $db_host='localhost';
-my $db_port=3306;
-my $db_user='billing';
-my $db_pass='billadm';
+my $db_name=$conf_hash{'mysql_database'};
+my $db_host=$conf_hash{'mysql_host'};
+my $db_port=$conf_hash{'mysql_port'};
+my $db_user=$conf_hash{'mysql_username'};
+my $db_pass=$conf_hash{'mysql_password'};
 
 
 #Get calling arguments:
