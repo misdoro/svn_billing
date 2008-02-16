@@ -3,6 +3,7 @@
 use lib "/usr/local/billing/authhandler";
 use Net::LDAP;
 use DBI; use DBD::mysql
+IO::Socket;
 require "funcs.pl";
 
 #LDAP options:
@@ -21,6 +22,7 @@ my $db_pass=$conf_hash{'mysql_password'};
 
 #Get calling arguments:
 my %args=undef;
+my %reply=undef;
 
 while (defined($line = <STDIN>) && length($line)>2) {
 	chomp $line;
@@ -61,53 +63,59 @@ $uid=~s/([^a-zA-Z])//g;
 
 my $result = LDAPsearch ( $ldap, "uid=$uid", \@Attrs );
 
-my $maylogin=1;
-my $errormessage='Welcome to the internet!;)';
+$reply{'REPLY_MESSAGE'}='Welcome to the internet! ;)';
+$reply{'RESULT'}='UNDEF';
 
 if ($result->entries){
 	my $entry = ($result->entries)[0];
-	print 'USER_NAME:'.$entry->get_value ('uid')."\n";
-	print 'USER_PASSWORD:'.$entry->get_value ('userPassword')."\n";
+	$reply{'USER_NAME'}=$entry->get_value('uid');
+	$reply{'USER_PASSWORD'}=$entry->get_value ('userPassword');
 }else{
-	$maylogin=0;
-	$errormessage='Sorry, user not found in LDAP database!';
+	$reply{'RESULT'}='FAIL';
+	$reply{'REPLY_MESSAGE'}='Sorry, user not found in LDAP database!';
 };
 
-#Check if user may login, get his params:
-my %result=('FRAMED_ROUTE','192.168.5.1');
+
 
 #Connect to MYSQL
 my $dbh = DBI->connect("DBI:mysql:$db_name:$db_host:$db_port", $db_user, $db_pass);
 
-my ($money,$uin)=undef;
-if ($maylogin) {
+my ($money,$uin,$ipnum,$is_active)=undef;
+if ($reply{'RESULT'} eq 'UNDEF') {
 	#Check if user has enough money on account:
-	my $query='select debit+credit, id from users where login=? and active=1;';
+	my $query='select debit+credit, id,user_ip,active from users where login=? and active=1;';
 	my $sth = $dbh->prepare($query);
 	my $rv = $sth->execute($uid) or die "can't execute the query:". $sth->errstr;
-	($money,$uin)=$sth->fetchrow_array;
+	($money,$uin,$ipnum,$is_active)=$sth->fetchrow_array;
 	if ($money<0) {
-		$maylogin=0;
-		$errormessage='Not enough money on account, sorry :(';
+		$reply{'RESULT'}='FAIL';
+		$reply{'REPLY_MESSAGE'}='Not enough money on account, sorry :(';
 	};
 	if (!$uin){
-		$maylogin=0;
-	        $errormessage='Sorry, user not found in MYSQL database! :(';
+		$reply{'RESULT'}='FAIL';
+	        $reply{'REPLY_MESSAGE'}='Sorry, user not found in MYSQL database! :(';
 	};
-};
-
-print 'REPLY_MESSAGE:'.$errormessage."\n";
-if ($maylogin){
-	print 'RESULT:UNDEF'."\n";		
-}else{
-	#Deny user to log in
-	print 'RESULT:FAIL'."\n";
+	if ($ipnum){
+		$reply{'FRAMED_IP_ADDRESS'}=dectoip($ipnum);
+	};
+	if (($is_active eq '0') && ($reply{'RESULT'} eq 'UNDEF')){
+		$reply{'RESULT'}='FAIL';
+                $reply{'REPLY_MESSAGE'}='Sorry, user is disabled in MySQL database! :(';
+	};
 };
 
 #Create session record in database (Inserting sessions only with found user_id, but possibly wrong password)
 my $query='insert into sessions (user_id,user_name,session_id,nas_port,nas_linkname,called_ip,called_mac,called_ident,state) values(?,?,?,?,?,?,?,?,?)';
 my $sth = $dbh->prepare($query);
-$sth->execute($uin,$uid,$args{'ACCT_SESSION_ID'},$args{'NAS_PORT'},$args{'LINK'},iptodec($args{'PEER_ADDR'}),mactodec($args{'PEER_MAC_ADDR'}),$args{'PEER_IDENT'},$maylogin) or die "can't execute the query:". $sth->errstr;
+my $sess_state=0;
+$sess_state=1 if ($reply{'RESULT'} eq 'UNDEF');
+$sth->execute($uin,$uid,$args{'ACCT_SESSION_ID'},$args{'NAS_PORT'},$args{'LINK'},iptodec($args{'PEER_ADDR'}),mactodec($args{'PEER_MAC_ADDR'}),$args{'PEER_IDENT'},$sess_state) or die "can't execute the query:". $sth->errstr;
+
+#Reply for request
+foreach my $key (keys %reply) {
+        print $key.':'.$reply{$key}."\n" if $key;
+};
+
 
 print "\n\n";
 

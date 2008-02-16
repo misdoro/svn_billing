@@ -97,122 +97,129 @@ void makeDBready() {
     delete sql;
 }
 
-user * onUserConnected(char * username, char * user_ip, uint32_t real_ip) {
-    uint32_t u_ip = htonl(inet_addr(user_ip));
-    for (user * u = firstuser; u != NULL; u = u->next) {
-        if (u->user_ip == u_ip ) {
-            printf("User with ip %s already connected (id=%i)\n", user_ip, u->id);
-            return NULL;
-        }
-    }
+user * onUserConnected(char * session_id){
+//	uint32_t u_ip = htonl(inet_addr(user_ip));
+/*Do not need this check cause if user disconnects and then connects at the same moment, this check will fail
+	for (user * u = firstuser; u != NULL; u = u->next) {
+		if (u->user_ip == u_ip ) {
+			printf("User with ip %s already connected (id=%i)\n", user_ip, u->id);
+			return NULL;
+		}
+	}
+*/  
+	char sql[32768];
+	MYSQL_RES * result;
+	// get user info from session:
+	sprintf(sql, "SELECT sessions.user_id, users.debit, users.credit, sessions.ppp_ip, sessions.id from sessions,users where sessions.session_id='%s' and sessions.state=2 and users.id=sessions.user_id", session_id);
+	//sprintf(sql, "SELECT id, debit, credit, user_ip FROM users WHERE login='%s' LIMIT 1", username);
+	mysql_query(cfg.myconn, sql);
+	result = mysql_store_result(cfg.myconn);
+	if (mysql_num_rows(result) == 0) {
+		printf ("Warning! Session %s not found or is wrong\n", session_id);
+// !!! - drop user here
+		return NULL;
+	}
+	MYSQL_ROW row = mysql_fetch_row(result);
+/*Don't need this check
+	if (inet_addr(user_ip) != inet_addr(row[3])) {
+		printf ("Warning! User ip %s for connected user '%s' is not correct. (%s in database).\n", user_ip, username, row[3]);
+// !!! - drop user here
+		mysql_free_result(result);
+		return NULL;
+	}
+*/
+	// create user structure
+	user * newuser = new user;
+	newuser->next = NULL;
+	newuser->id = atoi(row[0]);
+	newuser->user_debit = atof(row[1]);
+	newuser->user_credit = atof(row[2]);
+	newuser->user_ip = htonl(inet_addr(row[3]));
+	newuser->session_id=atoi(row[3]);
+	newuser->first_user_zone = NULL;
+	newuser->first_zone_group = NULL;
+	newuser->debit_changed = 0;
+	newuser->die_time = 0;
+	printf("User info - id:%s, debit:%s, credit:%s\n", row[0], row[1], row[2]);
+	mysql_free_result(result);
     
-    char sql[32768];
-    MYSQL_RES * result;
-    // get user info
-    sprintf(sql, "SELECT id, debit, credit, user_ip FROM users WHERE login='%s' LIMIT 1", username);
-    mysql_query(cfg.myconn, sql);
-    result = mysql_store_result(cfg.myconn);
-    if (mysql_num_rows(result) == 0) {
-        printf ("Warning! User with name %s not found in database\n", username);
+	// get user groups
+	sprintf(sql, "SELECT group_id FROM usergroups WHERE user_id=%i LIMIT 128", newuser->id);
+	mysql_query(cfg.myconn, sql);
+	result = mysql_store_result(cfg.myconn);
+	if (mysql_num_rows(result) == 0) {
+		printf ("Warning! No groups for user %i found.\n", newuser->id);
 // !!! - drop user here
-        return NULL;
-    }
-    MYSQL_ROW row = mysql_fetch_row(result);
-    if (inet_addr(user_ip) != inet_addr(row[3])) {
-        printf ("Warning! User ip %s for connected user '%s' is not correct. (%s in database).\n", user_ip, username, row[3]);
-// !!! - drop user here
-        mysql_free_result(result);
-        return NULL;
-    }
-    // create user structure
-    user * newuser = new user;
-    newuser->next = NULL;
-    newuser->id = atoi(row[0]);
-    newuser->user_debit = atof(row[1]);
-    newuser->user_credit = atof(row[2]);
-    newuser->user_ip = htonl(inet_addr(row[3]));    
-    newuser->first_user_zone = NULL;
-    newuser->first_zone_group = NULL;
-    newuser->debit_changed = 0;
-    newuser->die_time = 0;
-        printf("User info - id:%s, debit:%s, credit:%s\n", row[0], row[1], row[2]);
-    mysql_free_result(result);
-    
-    // get user groups
-    sprintf(sql, "SELECT group_id FROM usergroups WHERE user_id=%i LIMIT 128", newuser->id);
-    mysql_query(cfg.myconn, sql);
-    result = mysql_store_result(cfg.myconn);
-    if (mysql_num_rows(result) == 0) {
-        printf ("Warning! No groups for user %i found.\n", newuser->id);
-// !!! - drop user here
-        delete newuser;
-        return NULL;
-    }
-    while ((row = mysql_fetch_row(result)) != NULL) {
-        // add zone groups
-        zone_group * newgroup = new zone_group;
-        newgroup->next = NULL;
-        newgroup->id = atoi(row[0]);
-        newgroup->in_bytes = 0;
-        newgroup->out_bytes = 0;
-        newgroup->in_mb_cost_total = 0;
-        newgroup->group_changed = 0;
-        if (newuser->first_zone_group == NULL) {
-            newuser->first_zone_group = newgroup;
-        } else {
-            zone_group * p;
-            for (p = newuser->first_zone_group; (p->next != NULL); p = p->next);
-            p->next = newgroup;
-        }
-        printf ("User %i. Group %i\n", newuser->id, newgroup->id);
-        // insert statistics fields
-        sprintf(sql, "INSERT INTO statistics (`id`, `user_id`, `real_ip`, `taken_ip`, `ip_digit`, `zone_group_id`, `traf_in`, `traf_out`, `traf_in_money`, `sess_start`, `sess_end`, `connected`)");
-        sprintf(sql, "%s  VALUES (NULL, %lu, %lu, %lu, %u, %u, 0, 0, 0, CURRENT_TIMESTAMP, '0000-00-00 00:00:00', 1) ",sql, newuser->id, real_ip, newuser->user_ip, 0, newgroup->id );
-        mysql_query(cfg.myconn, sql);
-    }
-    mysql_free_result(result);
-    // load zones - create sql query
-    sprintf(sql, "SELECT allzones.id, zone_groups.group_id  AS group_id, allzones.ip, allzones.mask, allzones.dstport, (SELECT mb_cost FROM groupnames WHERE group_id = groupnames.id) AS mb_cost FROM allzones INNER JOIN zone_groups ON zone_groups.zone_id = allzones.id WHERE ");
-    for (zone_group * p = newuser->first_zone_group; (p!=NULL); p = p->next ) {
-        sprintf(sql, "%s (zone_groups.group_id = %i)",sql, p->id);
-        if (p->next != NULL) sprintf(sql,"%s OR ", sql);
-    }
-    sprintf(sql, "%s ORDER BY zone_groups.priority DESC",sql);
-    mysql_query(cfg.myconn, sql);
-    result = mysql_store_result(cfg.myconn);
-    while ((row = mysql_fetch_row(result)) != NULL) {
-        // create new cost zone
-        user_zone * newzone = new user_zone;
-        newzone->next = NULL;
-        newzone->id = atoi(row[0]);
-        newzone->zone_group_id = atoi(row[1]);
-        newzone->zone_ip = atoll(row[2]);
-        newzone->zone_mask = atoi(row[3]);
-        newzone->zone_dstport = atoi(row[4]);
-        newzone->zone_mb_cost = atof(row[5]);
-        newzone->zone_in_bytes = 0;
-        newzone->zone_out_bytes = 0;
-        //printf("Loaded zone. id=%i, zone_group_id=%i, ip=%s\n", newzone->id, newzone->zone_group_id, ipFromIntToStr(newzone->zone_ip) );
-        if (newuser->first_user_zone == NULL) {
-            newuser->first_user_zone = newzone;
-        } else {
-            user_zone * p;
-            for (p = newuser->first_user_zone; (p->next != NULL); p = p->next);
-            p->next = newzone;
-        }        
-    }
-    mysql_free_result(result);    
-    printf("Zones loaded.\n");
-    // add user to list
-    pthread_mutex_lock (&users_table_m);
-    addUser(newuser);
-    pthread_mutex_unlock (&users_table_m);
-    printf("User added.\n");
-    return newuser;
+		delete newuser;
+		return NULL;
+	}
+	while ((row = mysql_fetch_row(result)) != NULL) {
+		// add zone groups
+		zone_group * newgroup = new zone_group;
+		newgroup->next = NULL;
+		newgroup->id = atoi(row[0]);
+		newgroup->in_bytes = 0;
+		newgroup->out_bytes = 0;
+		newgroup->in_mb_cost_total = 0;
+		newgroup->group_changed = 0;
+		if (newuser->first_zone_group == NULL) {
+			newuser->first_zone_group = newgroup;
+		} else {
+			zone_group * p;
+			for (p = newuser->first_zone_group; (p->next != NULL); p = p->next);
+			p->next = newgroup;
+		}
+        
+		printf ("User %i. Group %i\n", newuser->id, newgroup->id);
+		// insert statistics fields
+		//sprintf(sql, "INSERT INTO statistics (`id`, `user_id`, `real_ip`, `taken_ip`, `ip_digit`, `zone_group_id`, `traf_in`, `traf_out`, `traf_in_money`, `sess_start`, `sess_end`, `connected`)");
+		//sprintf(sql, "%s  VALUES (NULL, %lu, %lu, %lu, %u, %u, 0, 0, 0, CURRENT_TIMESTAMP, '0000-00-00 00:00:00', 1) ",sql, newuser->id, real_ip, newuser->user_ip, 0, newgroup->id );
+		//mysql_query(cfg.myconn, sql);
+	}
+	mysql_free_result(result);
+	// load zones - create sql query
+	sprintf(sql, "SELECT allzones.id, zone_groups.group_id  AS group_id, allzones.ip, allzones.mask, allzones.dstport, (SELECT mb_cost FROM groupnames WHERE group_id = groupnames.id) AS mb_cost FROM allzones INNER JOIN zone_groups ON zone_groups.zone_id = allzones.id WHERE ");
+	for (zone_group * p = newuser->first_zone_group; (p!=NULL); p = p->next ) {
+		sprintf(sql, "%s (zone_groups.group_id = %i)",sql, p->id);
+		if (p->next != NULL) sprintf(sql,"%s OR ", sql);
+	}
+	sprintf(sql, "%s ORDER BY zone_groups.priority DESC",sql);
+	mysql_query(cfg.myconn, sql);
+	result = mysql_store_result(cfg.myconn);
+	while ((row = mysql_fetch_row(result)) != NULL) {
+		// create new cost zone
+		user_zone * newzone = new user_zone;
+		newzone->next = NULL;
+		newzone->id = atoi(row[0]);
+		newzone->zone_group_id = atoi(row[1]);
+		newzone->zone_ip = atoll(row[2]);
+		newzone->zone_mask = atoi(row[3]);
+		newzone->zone_dstport = atoi(row[4]);
+		newzone->zone_mb_cost = atof(row[5]);
+		newzone->zone_in_bytes = 0;
+		newzone->zone_out_bytes = 0;
+		//printf("Loaded zone. id=%i, zone_group_id=%i, ip=%s\n", newzone->id, newzone->zone_group_id, ipFromIntToStr(newzone->zone_ip) );
+		if (newuser->first_user_zone == NULL) {
+			newuser->first_user_zone = newzone;
+		} else {
+			user_zone * p;
+			for (p = newuser->first_user_zone; (p->next != NULL); p = p->next);
+				p->next = newzone;
+		}        
+	}
+	mysql_free_result(result);    
+	printf("Zones loaded.\n");
+	// add user to list
+	pthread_mutex_lock (&users_table_m);
+	addUser(newuser);
+	pthread_mutex_unlock (&users_table_m);
+	printf("User added.\n");
+	return newuser;
 }
 
 
-void onUserDisconnected(uint32_t user_ip) {
+void onUserDisconnected(char * session_id) {
+    int user_ip=0;	//temporary fix just to make it compile
     pthread_mutex_lock (&users_table_m);
     char sql[1024];
     // get user with this ip
