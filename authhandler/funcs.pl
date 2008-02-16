@@ -30,6 +30,16 @@ sub iptodec{
 	return ($octets[0]*1<<24)+($octets[1]*1<<16)+($octets[2]*1<<8)+($octets[3]);
 }
 
+#Convert IP to 4-byte number
+sub dectoip{
+        my $num=@_[0];
+	$d = $num % 256; $num -= $d; $num /= 256;
+	$c = $num % 256; $num -= $c; $num /= 256;
+	$b = $num % 256; $num -= $b; $num /= 256;
+	$a = $num;
+	return "$a.$b.$c.$d";
+}
+
 #Convert MAC address to 6-byte number:
 sub mactodec{
 	my $mac=@_[0];

@@ -2,7 +2,6 @@
  * File:   billing.h
  * Author: flexx
  *
- * Created on 18 Декабрь 2007 г., 20:08
  */
 
 #ifndef _BILLING_H
@@ -109,6 +108,7 @@ typedef struct user {
         bool debit_changed;
 	user_zone * first_user_zone;
         zone_group * first_zone_group;
+	pthread_mutex_t	user_mutex;
 };
 
 typedef struct configuration {
@@ -145,8 +145,8 @@ user_zone * getflowzone(user * curr_user, uint32_t dst_ip);
 MYSQL * connectdb ();
 
 char * ipFromIntToStr(uint32_t ip);
-user * onUserConnected(char * username, char * user_ip, uint32_t real_ip);
-void onUserDisconnected(uint32_t user_ip);
+user * onUserConnected(char * session_id);
+void onUserDisconnected(char * session_id);
 void makeDBready();
 void removeUser(user * current_u);
 #endif	/* _BILLING_H */

@@ -2,8 +2,6 @@
 // File:   billing.cc
 // Author: flexx
 //
-// Created on 18 Декабрь 2007 г., 20:19
-//
 
 #include "billing.h"
 
@@ -47,18 +45,8 @@ int main(int argc, char** argv) {
     if (connectdb() == NULL) {
         err_func("Error. Could not connect to database.\n");
     }
-    makeDBready();
-   /* onUserConnected(-1062729719, 0);
-    onUserConnected(-1062729720, 0);
-    onUserConnected(-1062729718, 0);
-    onUserConnected(-1062729717, 0);
-    onUserConnected(-1062729721, 0);
-    onUserConnected(-1062729722, 0);
-    onUserConnected(-1062729723, 0);
-    onUserConnected(-1062729724, 0);
-    onUserConnected(-1062729725, 0);
-    onUserConnected(-1062729726, 0);
-    */
+//    makeDBready();
+
 // here - fork application - if configuration right
 /*    pid_t pid;
     if ((pid = fork()) < 0) {
@@ -76,6 +64,7 @@ int main(int argc, char** argv) {
 // here - start threads
     pthread_t threads[1];
     int rc, t = 0;
+//Create user connect/disconnect listener
     rc = pthread_create(&threads[0], NULL, userconnectlistener, (void *)t);
     if (rc) {
 	printf("ERROR; return code from pthread_create() is %d\n", rc);

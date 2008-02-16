@@ -32,7 +32,8 @@ $uid=~s/([^a-zA-Z])//g;
 my $dbh = DBI->connect("DBI:mysql:$db_name:$db_host:$db_port", $db_user, $db_pass);
 
 #If connecting:
-if ($args{'ACCT_STATUS_TYPE'} eq 'START') {
+if ($args{'ACCT_STATUS_TYPE'} eq 'START') 
+{
 	#Update session with user's current peer IP (for netflow), set it's state as connected:
 	my $query='update sessions set ppp_ip=?,state=2 where session_id=? and user_name=? and state=1';
 	my $sth = $dbh->prepare($query);
@@ -42,17 +43,19 @@ if ($args{'ACCT_STATUS_TYPE'} eq 'START') {
 	$socket = IO::Socket::INET->new(PeerAddr => $event_host, 
 		PeerPort => $event_port, 
 		Proto => "tcp",
-		Type => SOCK_STREAM) or die ('cant connect');
-        print $socket "connect\n";
-	print $socket $args{'USER_NAME'}."\n";
-	print $socket $args{'ACCT_SESSION_ID'}."\n";
-	print $socket $args{'FRAMED_IP_ADDRESS'}."\n";
-	print $socket $args{'LINK'}."\n";
-        print $socket "\n";
-
-        close($socket);
-
-}elsif ($args{'ACCT_STATUS_TYPE'} eq 'STOP'){
+		Type => SOCK_STREAM);
+	if ($socket){
+	        print $socket "connect\n";
+		print $socket $args{'USER_NAME'}."\n";
+		print $socket $args{'ACCT_SESSION_ID'}."\n";
+		print $socket $args{'FRAMED_IP_ADDRESS'}."\n";
+		print $socket $args{'LINK'}."\n";
+		print $socket "\n";
+		close($socket);
+	};
+}
+elsif ($args{'ACCT_STATUS_TYPE'} eq 'STOP')
+{
 	#Update session state, end time:
         my $query='update sessions set state=3,sess_end=CURRENT_TIMESTAMP where session_id=? and user_name=? and state=2';
         my $sth = $dbh->prepare($query);
@@ -62,15 +65,16 @@ if ($args{'ACCT_STATUS_TYPE'} eq 'START') {
 	$socket = IO::Socket::INET->new(PeerAddr => $event_host,
                 PeerPort => $event_port,
                 Proto => "tcp",
-                Type => SOCK_STREAM) or die ('cant connect');
-        print $socket "disconnect\n";
-        print $socket $args{'USER_NAME'}."\n";
-        print $socket $args{'ACCT_SESSION_ID'}."\n";
-        print $socket $args{'FRAMED_IP_ADDRESS'}."\n";
-        print $socket $args{'LINK'}."\n";
-        print $socket "\n";
-
-        close($socket);
+                Type => SOCK_STREAM);
+	if ($socket){
+		print $socket "disconnect\n";
+		print $socket $args{'USER_NAME'}."\n";
+		print $socket $args{'ACCT_SESSION_ID'}."\n";
+		print $socket $args{'FRAMED_IP_ADDRESS'}."\n";
+		print $socket $args{'LINK'}."\n";
+		print $socket "\n";
+		close($socket);
+	};
 };
 
 
