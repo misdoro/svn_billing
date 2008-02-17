@@ -140,6 +140,7 @@ user * onUserConnected(char * session_id){
 	newuser->first_zone_group = NULL;
 	newuser->debit_changed = 0;
 	newuser->die_time = 0;
+	newuser->user_mutex = PTHREAD_MUTEX_INITIALIZER;
 	printf("User info - id:%s, debit:%s, credit:%s\n", row[0], row[1], row[2]);
 	mysql_free_result(result);
     
