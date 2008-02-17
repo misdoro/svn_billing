@@ -29,6 +29,7 @@
 
 #include <math.h>
 #include <mysql/mysql.h>
+#include "ConfigFile.h"
 
 #define MB_LENGTH 1048576
 
@@ -112,25 +113,31 @@ typedef struct user {
 };
 
 typedef struct configuration {
-        // listeners configuration
-	uint32_t netflow_port;
-        uint16_t connectmsgport;
-        // MySql configuration
-	char * mysql_server;
-        uint32_t mysql_port;
-        char * mysql_username;
-        char * mysql_password;
-        char * mysql_database;
-        MYSQL * myconn;
-        // terminate application
+	// listeners configuration
+	uint16_t netflow_listen_port;
+	uint32_t netflow_listen_addr;
+	uint16_t netflow_source_port;
+	uint32_t netflow_source_addr;
+	uint16_t events_listen_port;
+	uint32_t events_listen_addr;
+	uint16_t events_source_port;
+        uint32_t events_source_addr;
+	// MySql configuration
+	string mysql_server;
+	uint16_t mysql_port;
+	string mysql_username;
+	string mysql_password;
+	string mysql_database;
+	MYSQL * myconn;
+	// terminate application
 	bool terminate;
-        // put stats into DB
-        uint32_t stats_updated_time;
-        uint32_t stats_update_interval;
-        // to remove disconnnected users
-        uint32_t die_time_interval; 
+	// put stats into DB
+	uint32_t stats_updated_time;
+	uint32_t stats_update_interval;
+	// to remove disconnnected users
+	uint32_t die_time_interval; 
 };
-    
+
 extern user * firstuser;
 extern configuration cfg;
 extern pthread_mutex_t users_table_m;

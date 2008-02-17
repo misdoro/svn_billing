@@ -3,12 +3,12 @@
 MYSQL * connectdb () {
 	MYSQL *lnk;
 	lnk = mysql_init(NULL);
-	lnk = mysql_real_connect(lnk, cfg.mysql_server, 
-                                      cfg.mysql_username, 
-                                      cfg.mysql_password, 
-                                      cfg.mysql_database,
-                                      cfg.mysql_port, NULL, 0);
-        cfg.myconn = lnk;
+	lnk = mysql_real_connect(lnk, cfg.mysql_server.c_str(),
+					cfg.mysql_username.c_str(),
+					cfg.mysql_password.c_str(),
+					cfg.mysql_database.c_str(),
+					cfg.mysql_port, NULL, 0);
+	cfg.myconn = lnk;
 	return lnk;
 }
 
@@ -29,7 +29,7 @@ void * statsupdater(void *threadid) {
 						uint32_t sid = u->session_id;
 						float traf_in_money = p->in_mb_cost_total;
 						// connected=2 - user disconnected, but not removed from DB
-						sprintf(sql, "UPDATE session_statistics SET traf_in=%llu, traf_out=%llu, traf_in_money=%f WHERE (session_id=%lu) AND (zone_group_id=%lu)", in_bytes, out_bytes, traf_in_money, sid, pid);
+						//sprintf(sql, "UPDATE session_statistics SET traf_in=%llu, traf_out=%llu, traf_in_money=%f WHERE (session_id=%lu) AND (zone_group_id=%lu)", in_bytes, out_bytes, traf_in_money, sid, pid);
 						mysql_query(cfg.myconn, sql);
 						printf("%s\n",sql);
 						delete sql;
@@ -64,4 +64,5 @@ void * statsupdater(void *threadid) {
 		pthread_mutex_unlock (&users_table_m);
 		sleep(1);
 	}
+	pthread_exit(NULL);
 }

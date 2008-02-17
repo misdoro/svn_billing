@@ -26,7 +26,7 @@ while (defined($line = <STDIN>) && length($line)>2) {
 };
 
 my $uid=$args{'USER_NAME'};
-$uid=~s/([^a-zA-Z])//g;
+$uid=~s/([^a-zA-Z0-9])//g;
 
 #Connect to MYSQL
 my $dbh = DBI->connect("DBI:mysql:$db_name:$db_host:$db_port", $db_user, $db_pass);

@@ -18,7 +18,7 @@ void * userconnectlistener (void *threadid) {
 	bzero(&server, length);
 	server.sin_family=AF_INET;
 	server.sin_addr.s_addr=htonl(INADDR_ANY);
-	server.sin_port=htons(cfg.connectmsgport);
+	server.sin_port=htons(cfg.events_listen_port);
 	bind(listenSocket,(struct sockaddr *) &server, sizeof(server));
 	listen(listenSocket, 5);
 	while (1) {
