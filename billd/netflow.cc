@@ -75,14 +75,14 @@ void * netflowlistener(void *threadid)
 	server.sin_addr.s_addr = htonl(INADDR_ANY);
 	server.sin_port = htons(cfg.netflow_listen_port);
 	//need free ! !!!!
-		pheader * packet = new pheader;
+	pheader * packet = new pheader;
 	flowrecord *records = new flowrecord[30];
 	user *currentuser;
 	uint8_t flow_direction;
 	uint32_t dst_ip;
 	user_zone *currentzone;
 	if (bind(sock, (struct sockaddr *)&server, length) < 0)
-		err_func("binding");
+	err_func("binding");
 	fromlen = sizeof(struct sockaddr_in);
 	while (1) {
 		n = recvfrom(sock, buf, 1470, 0, (struct sockaddr *)&from, &fromlen);
@@ -115,24 +115,19 @@ void * netflowlistener(void *threadid)
 				flow_direction = (records[n].srcaddr == currentuser->user_ip ? 0 : 1);
 				currentzone = getflowzone(currentuser, dst_ip);
 				if (currentzone != NULL) {
-					for (zone_group * p = currentuser->first_zone_group; p != NULL; p = p->next) {
-						if (p->id == currentzone->zone_group_id) {
-							if (flow_direction == 0) {
-								currentzone->zone_out_bytes += records[n].bytecount;
-								p->out_bytes += records[n].bytecount;
-								p->group_changed = 1;
-							}
-							if (flow_direction == 1) {
-								currentzone->zone_in_bytes += records[n].bytecount;
-								p->in_bytes += records[n].bytecount;
-								p->in_mb_cost_total += (records[n].bytecount * currentzone->zone_mb_cost) / MB_LENGTH;
-								p->group_changed = 1;
-								float old_debit = currentuser->user_debit;
-								currentuser->user_debit -= (records[n].bytecount * currentzone->zone_mb_cost) / MB_LENGTH;
-								if (old_debit != currentuser->user_debit) 
-									currentuser->debit_changed = 1;
-							}
-						}
+					if (flow_direction == 0) 
+					{
+						currentzone->group_ref->out_bytes += records[n].bytecount;
+						currentzone->group_ref->out_diff += records[n].bytecount;
+						currentzone->group_ref->group_changed = 1;
+						currentzone->zone_out_bytes += records[n].bytecount;
+					}
+					else if (flow_direction == 1) 
+					{
+						currentzone->group_ref->in_bytes += records[n].bytecount;
+						currentzone->group_ref->in_diff += records[n].bytecount;
+						currentzone->group_ref->group_changed = 1;
+						currentzone->zone_in_bytes += records[n].bytecount;
 					}
 				} else {
 					printf("Warning! Zone not found! (uid: %u, srcaddr: %u, dscaddr %u)\n", currentuser->id, records[n].srcaddr, records[n].dstaddr);
