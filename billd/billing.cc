@@ -59,30 +59,35 @@ int main(int argc, char** argv) {
     	exit(0);
     }
 */
-    signal(SIGTERM, mysigterm);
-    signal(SIGPIPE, SIG_IGN);
+	signal(SIGTERM, mysigterm);
+	signal(SIGPIPE, SIG_IGN);
 // here - connect to mysql, read usertables, zones
 //
-
 // here - start threads
-    pthread_t threads[1];
-    int rc, t = 0;
+	pthread_t threads[3];
+	int rc, t = 0;
 //Create user connect/disconnect listener
-    rc = pthread_create(&threads[0], NULL, userconnectlistener, (void *)t);
-    if (rc) {
-	printf("ERROR; return code from pthread_create() is %d\n", rc);
-        exit(-1);
-    }
+	rc = pthread_create(&threads[0], NULL, userconnectlistener, (void *)t);
+	if (rc) {
+		printf("ERROR; return code from pthread_create() is %d\n", rc);
+		exit(-1);
+	}
 //Create NETFLOW listener
-    rc = pthread_create(&threads[0], NULL, netflowlistener, (void *)t);
-    if (rc) {
-    	printf("ERROR; return code from pthread_create() is %d\n", rc);
-    	exit(-1);
-    }
-    if (mystdout != stdout) fflush(mystdout);
-    while (!cfg.terminate) sleep(1);
-    sleep(3);
-    if (mystdout!=stdout) fclose(mystdout);
-    return (EXIT_SUCCESS);
+	rc = pthread_create(&threads[1], NULL, netflowlistener, (void *)t);
+	if (rc) {
+		printf("ERROR; return code from pthread_create() is %d\n", rc);
+		exit(-1);
+	}
+//Create stats update thread:
+	rc = pthread_create(&threads[2], NULL, statsupdater, (void *)t);
+        if (rc) {
+		printf("ERROR; return code from pthread_create() is %d\n", rc);
+                exit(-1);	
+	};
+	if (mystdout != stdout) fflush(mystdout);
+	while (!cfg.terminate) sleep(1);
+	sleep(3);
+	if (mystdout!=stdout) fclose(mystdout);
+	return (EXIT_SUCCESS);
 }
 

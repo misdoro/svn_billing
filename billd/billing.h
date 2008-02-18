@@ -146,8 +146,10 @@ extern pthread_mutex_t users_table_m;
 void err_func(char *msg);
 //billing.cc
 void *userconnectlistener(void *threadid);
-void *netflowlistener(void *threadid);
 //netflow.cc
+void *netflowlistener(void *threadid);
+//mysql.cc
+void *statsupdater(void *threadid);
 
 user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr);
 uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask);

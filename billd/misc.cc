@@ -237,13 +237,13 @@ user *onUserConnected(char *session_id)
 
 void onUserDisconnected(char *session_id)
 {
-	int user_ip = 0;
+	uint32_t user_ip = 0;
 	//temporary fix just to make it compile
 		pthread_mutex_lock(&users_table_m);
 	char sql[1024];
 	//get user with this ip
 		user * current_u = NULL;
-	int user_found = 0;
+	uint8_t user_found = 0;
 	for (current_u = firstuser; current_u != NULL; current_u = current_u->next) {
 		if (current_u->user_ip == user_ip) {
 			user_found = 1;
