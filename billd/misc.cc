@@ -11,6 +11,27 @@ user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr)
 	return NULL;
 }
 
+int verbose_mutex_lock(pthread_mutex_t *mutex){
+	int res = pthread_mutex_trylock(mutex);
+	if (res==0){
+		if (cfg.debug_locks) printf("lock and go!\n");
+	}else{	
+		pthread_mutex_lock(mutex);
+		if (cfg.debug_locks) printf("lock and wait!\n");
+	};
+	return res;
+};
+
+int verbose_mutex_unlock(pthread_mutex_t *mutex){
+	int res=pthread_mutex_unlock(mutex);
+	if (res==0){
+		if (cfg.debug_locks) printf("unlocked!\n");
+	}else {
+		if (cfg.debug_locks) printf("was not locked!\n");
+	};
+	return res;
+};
+
 //shift given ip number by mask bits:
 uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask)
 {
@@ -107,14 +128,6 @@ void makeDBready()
 
 user *onUserConnected(char *session_id)
 {
-	//uint32_t u_ip = htonl(inet_addr(user_ip));
-	/*
-	 * Do not need this check cause if user disconnects and then connects
-	 * at the same moment, this check will fail for (user * u =
-	 * firstuser; u != NULL; u = u->next) { if (u->user_ip == u_ip ) {
-	 * printf("User with ip %s already connected (id=%i)\n", user_ip,
-	 * u->id); return NULL; } }
-	 */
 	char sql[32768];
 	MYSQL_RES *result;
 //get user info from session:
@@ -128,12 +141,7 @@ user *onUserConnected(char *session_id)
 		return NULL;
 	}
 	MYSQL_ROW row = mysql_fetch_row(result);
-	/*
-	 * Don't need this check if (inet_addr(user_ip) != inet_addr(row[3]))
-	 * { printf ("Warning! User ip %s for connected user '%s' is not
-	 * correct. (%s in database).\n", user_ip, username, row[3]); // !!!
-	 * - drop user here mysql_free_result(result); return NULL; }
-	 */
+
 	//create user structure
 	user * newuser = new user;
 	newuser->next = NULL;
@@ -141,7 +149,8 @@ user *onUserConnected(char *session_id)
 	newuser->user_debit = atof(row[1]);
 	newuser->user_credit = atof(row[2]);
 	newuser->user_ip = htonl(inet_addr(row[3]));
-	newuser->session_id = atoi(row[3]);
+	newuser->session_id = atoi(row[4]);
+	newuser->verbose_session_id = session_id;
 	newuser->first_user_zone = NULL;
 	newuser->first_zone_group = NULL;
 	newuser->debit_changed = 0;
@@ -180,10 +189,6 @@ user *onUserConnected(char *session_id)
 		}
 
 		printf("User %i. Group %i\n", newuser->id, newgroup->id);
-		//insert statistics fields
-		// sprintf(sql, "INSERT INTO statistics (`id`, `user_id`, `real_ip`, `taken_ip`, `ip_digit`, `zone_group_id`, `traf_in`, `traf_out`, `traf_in_money`, `sess_start`, `sess_end`, `connected`)");
-		//sprintf(sql, "%s  VALUES (NULL, %lu, %lu, %lu, %u, %u, 0, 0, 0, CURRENT_TIMESTAMP, '0000-00-00 00:00:00', 1) ", sql, newuser->id, real_ip, newuser->user_ip, 0, newgroup->id);
-		//mysql_query(cfg.myconn, sql);
 	}
 	mysql_free_result(result);
 
@@ -227,9 +232,9 @@ user *onUserConnected(char *session_id)
 	mysql_free_result(result);
 	printf("Zones loaded.\n");
 	//add user to list
-		pthread_mutex_lock(&users_table_m);
+	verbose_mutex_lock(&users_table_m);
 	addUser(newuser);
-	pthread_mutex_unlock(&users_table_m);
+	verbose_mutex_unlock(&users_table_m);
 	printf("User added.\n");
 	return newuser;
 }
@@ -237,41 +242,24 @@ user *onUserConnected(char *session_id)
 
 void onUserDisconnected(char *session_id)
 {
-	uint32_t user_ip = 0;
-	//temporary fix just to make it compile
-		pthread_mutex_lock(&users_table_m);
-	char sql[1024];
-	//get user with this ip
-		user * current_u = NULL;
+	user * current_u = NULL;
 	uint8_t user_found = 0;
+
+	verbose_mutex_lock(&users_table_m);
 	for (current_u = firstuser; current_u != NULL; current_u = current_u->next) {
-		if (current_u->user_ip == user_ip) {
+		if (strcmp(current_u->verbose_session_id.c_str(), session_id)==0) {
 			user_found = 1;
 			break;
 		}
 	}
-
+	verbose_mutex_unlock(&users_table_m);
+		
 	if (user_found == 0) {
-		printf("Warning! User with ip %lu not found!\n", user_ip);
+		printf("Warning! Session %s not found!\n", session_id);
 		return;
 	}
-	//store user information in database
-		for (zone_group * p = current_u->first_zone_group; p != NULL; p = p->next) {
-		if (p->group_changed == 1) {
-			uint64_t in_bytes = p->in_bytes;
-			uint64_t out_bytes = p->out_bytes;
-			uint32_t pid = p->id;
-			uint32_t uid = current_u->id;
-			//float traf_in_money = p->in_mb_cost_total;
-			float traf_in_money = 0;
-			sprintf(sql, "UPDATE statistics SET traf_in=%llu, traf_out=%llu, traf_in_money=%f, sess_end=CURRENT_TIMESTAMP, connected=2 WHERE (user_id=%lu) AND (zone_group_id=%lu) AND (connected=1)", in_bytes, out_bytes, traf_in_money, uid, pid);
-			printf("%s\n", sql);
-			mysql_query(cfg.myconn, sql);
-		}
-	}
-	sprintf(sql, "UPDATE users SET debit=%f WHERE id=%u", current_u->user_debit, current_u->id);
-	mysql_query(cfg.myconn, sql);
 
+	verbose_mutex_lock(&(current_u->user_mutex));
 	current_u->die_time = time(NULL);
-	pthread_mutex_unlock(&users_table_m);
+	verbose_mutex_unlock(&(current_u->user_mutex));
 }

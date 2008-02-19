@@ -40,7 +40,10 @@ int main(int argc, char** argv) {
 	config.readInto( cfg.mysql_database,"billd_mysql_database");
 	config.readInto( cfg.mysql_username,"billd_mysql_username");
 	config.readInto( cfg.mysql_password,"billd_mysql_password");
-	
+	config.readInto( cfg.debug_locks,"billd_debug_locks");
+	config.readInto( cfg.debug_netflow,"billd_debug_netflow");
+	config.readInto( cfg.debug_offload,"billd_debug_offload");	
+		
 	cfg.die_time_interval = 30;
 	// minimum time (in sec) before save stats to database
 	cfg.stats_update_interval = 25;
@@ -65,7 +68,8 @@ int main(int argc, char** argv) {
 //
 // here - start threads
 	pthread_t threads[3];
-	int rc, t = 0;
+	int rc = 0;
+	uint64_t t=0;
 //Create user connect/disconnect listener
 	rc = pthread_create(&threads[0], NULL, userconnectlistener, (void *)t);
 	if (rc) {
