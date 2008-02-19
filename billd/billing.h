@@ -104,6 +104,7 @@ typedef struct user {
 	double user_debit_diff;
 	double user_credit;
 	uint32_t session_id;
+	string verbose_session_id;
 	uint32_t session_start_time;
 	uint32_t session_end_time;
 	uint32_t die_time;
@@ -137,6 +138,9 @@ typedef struct configuration {
 	uint32_t stats_update_interval;
 	//to remove disconnnected users
 	uint32_t die_time_interval;
+	bool debug_locks;
+	bool debug_netflow;
+	bool debug_offload;
 };
 
 extern user *firstuser;
@@ -150,6 +154,9 @@ void *userconnectlistener(void *threadid);
 void *netflowlistener(void *threadid);
 //mysql.cc
 void *statsupdater(void *threadid);
+
+int verbose_mutex_lock(pthread_mutex_t *mutex);
+int verbose_mutex_unlock(pthread_mutex_t *mutex);
 
 user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr);
 uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask);

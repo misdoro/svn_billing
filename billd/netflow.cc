@@ -3,7 +3,7 @@
 void fillhdr(pheader * phead, char *buf)
 {
 	//Fill in packet struct and swap byteorder where and if needed:
-	 memcpy(&(phead->pver), buf, 2);
+	memcpy(&(phead->pver), buf, 2);
 	memcpy(&(phead->nflows), buf + 2, 2);
 	memcpy(&(phead->uptime), buf + 4, 4);
 	memcpy(&(phead->time), buf + 8, 4);
@@ -24,7 +24,7 @@ void fillhdr(pheader * phead, char *buf)
 void fillflow(flowrecord * rec, char *buf)
 {
 	//Fill in flow struct and swap byteorder where and if needed:
-	 memcpy(&(rec->srcaddr), buf, 4);
+	memcpy(&(rec->srcaddr), buf, 4);
 	memcpy(&(rec->dstaddr), buf + 4, 4);
 	memcpy(&(rec->nexthop), buf + 8, 4);
 	memcpy(&(rec->in_if), buf + 12, 2);
@@ -88,28 +88,26 @@ void * netflowlistener(void *threadid)
 		n = recvfrom(sock, buf, 1470, 0, (struct sockaddr *)&from, &fromlen);
 		if (n < 0) err_func("recvfrom");
 		fillhdr(packet, buf);
-		printf("received datagram!\n");
+		if (cfg.debug_netflow) printf("received datagram!\n");
 		//Fill in packet data
 		// Protocol version
-		printf("Protocol version: %i\n", packet->pver);
+		if (cfg.debug_netflow) printf("Protocol version: %i\n", packet->pver);
 		//Number of flows:
-		printf("Number of flows: %i\n", packet->nflows);
+		if (cfg.debug_netflow) printf("Number of flows: %i\n", packet->nflows);
 		//NAS uptime:
-		printf("NAS uptime: %i\n", packet->uptime);
+		if (cfg.debug_netflow) printf("NAS uptime: %i\n", packet->uptime);
 		//flow_sequence
-		printf("First flow sequence: %i\n", packet->seq);
-/*Try different locking scheme - lock all user records only if searching for user or adding/deleting him, in all other cases use per-user mutexes 	
-*		pthread_mutex_lock(&users_table_m);
-*
-*/
+		if (cfg.debug_netflow) printf("First flow sequence: %i\n", packet->seq);
+
 		for (n = 0; n < packet->nflows; n++) {
 			fillflow(&(records[n]), buf + 24 + n * 48);
-			pthread_mutex_lock(&users_table_m);//Lock all users while searching
+			verbose_mutex_lock(&users_table_m);//Lock all users while searching
 			currentuser = getuserbyip(records[n].srcaddr, records[n].dstaddr);
-			pthread_mutex_unlock(&users_table_m);//Unlock them when done
+			verbose_mutex_unlock(&users_table_m);//Unlock them when done
 			
 			if (currentuser != NULL) {
-				pthread_mutex_lock(&(currentuser->user_mutex));
+				if (cfg.debug_netflow) printf("Got user %i\n",currentuser->session_id);
+				verbose_mutex_lock(&(currentuser->user_mutex));
 				//Get flow direction(0->out, 1->in)
 				dst_ip = (records[n].srcaddr == currentuser->user_ip ? records[n].dstaddr : records[n].srcaddr);
 				flow_direction = (records[n].srcaddr == currentuser->user_ip ? 0 : 1);
@@ -129,14 +127,15 @@ void * netflowlistener(void *threadid)
 						currentzone->group_ref->group_changed = 1;
 						currentzone->zone_in_bytes += records[n].bytecount;
 					}
+					if (cfg.debug_netflow) printf("Record %i: session %i, in: %lu, out: %lu\n",packet->seq+n,currentuser->session_id,currentzone->group_ref->in_bytes,currentzone->group_ref->out_bytes);
 				} else {
-					printf("Warning! Zone not found! (uid: %u, srcaddr: %u, dscaddr %u)\n", currentuser->id, records[n].srcaddr, records[n].dstaddr);
+					if (cfg.debug_netflow) printf("Warning! Zone not found! (uid: %u, srcaddr: %u, dscaddr %u)\n", currentuser->id, records[n].srcaddr, records[n].dstaddr);
 				};
-				pthread_mutex_unlock(&(currentuser->user_mutex));
+				verbose_mutex_unlock(&(currentuser->user_mutex));
 			} else {
 				char *src = ipFromIntToStr(records[n].srcaddr);
 				char *dst = ipFromIntToStr(records[n].dstaddr);
-				printf("Warning! User not found (srcaddr: %s, dscaddr %s)\n", src, dst);
+				if (cfg.debug_netflow) printf("Warning! User not found (srcaddr: %s, dstaddr %s)\n", src, dst);
 				delete src;
 				delete dst;
 			};

@@ -17,21 +17,23 @@ void * statsupdater(void *threadid) {
 	// update values in database
 	while (cfg.terminate == 0) {
 		if ((time(NULL) - cfg.stats_updated_time) > cfg.stats_update_interval) {
-			printf("Updating stats in MySql...\n");        
+			if (cfg.debug_offload) printf("Updating stats in MySql...\n");        
 			cfg.stats_updated_time = time(NULL);
-			pthread_mutex_lock (&users_table_m);
+			verbose_mutex_lock (&users_table_m);
 			for (user * u = firstuser; u != NULL; u = u->next) {
+				if (cfg.debug_offload) printf ("Session %s:\n",u->verbose_session_id.c_str());
 				zone_group * p = u->first_zone_group;
-				pthread_mutex_unlock (&users_table_m);
-				pthread_mutex_lock (&(u->user_mutex));
+				verbose_mutex_unlock (&users_table_m);
+				verbose_mutex_lock (&(u->user_mutex));
 				double charged_money=0;
 				//Save stat record for each of user's groups:
 				while (p != NULL){
+					if (cfg.debug_offload) printf("   group %i: in %lu out %lu \n",p->id, p->in_diff,p->out_diff);
 					if (p->group_changed == 1) {
 						char * sql = new char[1024];
 						double money = (double) p->in_diff * p->zone_mb_cost / (double) MB_LENGTH;
 						charged_money += money;
-						sprintf(sql, "insert into session_statistics (zone_group_id,session_id,traf_in,traf_out,traf_in_money) values (%lu,%lu,%llu,%llu,%f);",p->id,u->session_id,p->in_diff,p->out_diff,money);
+						sprintf(sql, "insert into session_statistics (zone_group_id,session_id,traf_in,traf_out,traf_in_money) values (%i,%i,%lu,%lu,%f);",p->id,u->session_id,p->in_diff,p->out_diff,money);
 						mysql_query(cfg.myconn, sql);
 						printf("%s\n",sql);
 						delete sql;
@@ -49,17 +51,16 @@ void * statsupdater(void *threadid) {
 					printf("%s\n",sql);
 					delete sql;
 				}
-				pthread_mutex_unlock (&(u->user_mutex));
-				pthread_mutex_lock (&users_table_m);
+				verbose_mutex_unlock (&(u->user_mutex));
+				verbose_mutex_lock (&users_table_m);
 			}
-			pthread_mutex_unlock (&users_table_m);
+			verbose_mutex_unlock (&users_table_m);
 		}
 		// for remove disconnected users from table
 		user * next_u;
-		pthread_mutex_lock (&users_table_m);
+		verbose_mutex_lock (&users_table_m);
 		for (user * u = firstuser; u != NULL;) {
-			if (u->die_time == 0) continue;
-			if ((time(NULL) - u->die_time) > cfg.die_time_interval) {
+			if (((time(NULL) - u->die_time) > cfg.die_time_interval)&& u->die_time !=0) {
 				// remove dead user
 				next_u = u->next;
 				removeUser(u);
@@ -69,7 +70,7 @@ void * statsupdater(void *threadid) {
 				u = u->next;
 			};
 		}
-		pthread_mutex_unlock (&users_table_m);
+		verbose_mutex_unlock (&users_table_m);
 		sleep(1);
 	}
 	pthread_exit(NULL);
