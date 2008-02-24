@@ -105,6 +105,7 @@ typedef struct user {
 	double user_credit;
 	uint32_t session_id;
 	string verbose_session_id;
+	string verbose_link_name;
 	uint32_t session_start_time;
 	uint32_t session_end_time;
 	uint32_t die_time;
@@ -112,6 +113,7 @@ typedef struct user {
 	user_zone *first_user_zone;
 	zone_group *first_zone_group;
 	pthread_mutex_t user_mutex;
+	pthread_t user_drop_thread;
 };
 
 typedef struct configuration {
@@ -124,6 +126,11 @@ typedef struct configuration {
 	uint32_t events_listen_addr;
 	uint16_t events_source_port;
 	uint32_t events_source_addr;
+	//Here we connect to drop users
+	uint16_t mpd_shell_port;
+	string mpd_shell_addr;
+	string mpd_shell_user;
+	string mpd_shell_pass;
 	//MySql configuration
 	string mysql_server;
 	uint16_t mysql_port;
@@ -141,11 +148,14 @@ typedef struct configuration {
 	bool debug_locks;
 	bool debug_netflow;
 	bool debug_offload;
+	bool debug_events;
+	bool do_fork;
 };
 
 extern user *firstuser;
 extern configuration cfg;
 extern pthread_mutex_t users_table_m;
+extern pthread_mutex_t mysql_mutex;
 
 void err_func(char *msg);
 //billing.cc
@@ -154,6 +164,9 @@ void *userconnectlistener(void *threadid);
 void *netflowlistener(void *threadid);
 //mysql.cc
 void *statsupdater(void *threadid);
+//misc.cc
+void *dropUser(void * userstr);
+int disconnect_user (user * drophim);
 
 int verbose_mutex_lock(pthread_mutex_t *mutex);
 int verbose_mutex_unlock(pthread_mutex_t *mutex);
