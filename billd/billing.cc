@@ -45,11 +45,18 @@ int main(int argc, char** argv) {
 	config.readInto( cfg.debug_netflow,	"billd_debug_netflow", 	false);
 	config.readInto( cfg.debug_offload,	"billd_debug_offload", 	false);	
 	config.readInto( cfg.debug_events,	"billd_debug_events",	false);
+	config.readInto( cfg.verbose_daemonize,	"billd_debug_daemonize",false);
 	config.readInto( cfg.do_fork,		"billd_daemon_mode",	true);	
 	config.readInto( cfg.mpd_shell_port,	"billd_mpd_shell_port");
 	config.readInto( cfg.mpd_shell_addr,	"billd_mpd_shell_addr");
 	config.readInto( cfg.mpd_shell_user,	"billd_mpd_shell_user");
 	config.readInto( cfg.mpd_shell_pass,	"billd_mpd_shell_pass");
+	config.readInto( cfg.logfile,		"billd_log_file",	string("/dev/null"));
+	config.readInto( cfg.appendlogs,	"billd_append_logs",	true);
+	config.readInto( cfg.pidfile,		"billd_pid_file",	string("/var/run/billd.pid"));
+	config.readInto( cfg.lockfile,		"billd_lock_file",	string("/var/run/billd.lock"));
+	config.readInto( cfg.user,		"billd_run_user",	string("nobody"));
+	config.readInto( cfg.workingdir,	"billd_working_dir",	string("/"));
 	
 		
 	cfg.die_time_interval = 30;
@@ -62,14 +69,7 @@ int main(int argc, char** argv) {
 
 // here - fork application if configuration right
 	if (cfg.do_fork){
-		pid_t pid;
-		if ((pid = fork()) < 0) {
-			printf("Fork error. Daemon not started.\n");
-			exit(0);
-		} else if (pid != 0) {
-			printf("Daemon successfully forked.\n");
-			exit(0);
-		};
+		daemonize();
 	};
 
 	signal(SIGTERM, mysigterm);
@@ -102,6 +102,6 @@ int main(int argc, char** argv) {
 	while (!cfg.terminate) sleep(1);
 	sleep(3);
 	if (mystdout!=stdout) fclose(mystdout);
-	return (EXIT_SUCCESS);
+	pthread_exit(NULL);
 }
 

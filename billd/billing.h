@@ -6,31 +6,32 @@
 #ifndef _BILLING_H
 #define	_BILLING_H
 
-#include <pthread.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <stdlib.h>
-#include <strings.h>
-#include <sys/uio.h>
-#include <unistd.h>
-#include <string.h>
 #include <arpa/inet.h>
 #include <cstring>
+#include <fcntl.h>
 #include <iostream>
-
-//
-#include <sys/endian.h>
-
-#include <signal.h>
-#include <sys/time.h>
-
 #include <math.h>
 #include <mysql/mysql.h>
-#include "ConfigFile.h"
+#include <netdb.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <pwd.h>//?
+#include <signal.h>
+#include <stdarg.h>
+#include <string.h>
+#include <strings.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/endian.h>
+#include <sys/file.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
 
+#include "ConfigFile.h"
 #define MB_LENGTH 1048576
 
 using namespace std;
@@ -149,7 +150,14 @@ typedef struct configuration {
 	bool debug_netflow;
 	bool debug_offload;
 	bool debug_events;
+	bool verbose_daemonize;
 	bool do_fork;
+	bool appendlogs;
+	string logfile;
+	string pidfile;
+	string lockfile;
+	string user;
+	string workingdir;
 };
 
 extern user *firstuser;
@@ -167,6 +175,8 @@ void *statsupdater(void *threadid);
 //misc.cc
 void *dropUser(void * userstr);
 int disconnect_user (user * drophim);
+//daemonize.cc
+int daemonize(void);
 
 int verbose_mutex_lock(pthread_mutex_t *mutex);
 int verbose_mutex_unlock(pthread_mutex_t *mutex);
@@ -181,4 +191,5 @@ user *onUserConnected(char *session_id);
 void onUserDisconnected(char *session_id);
 void makeDBready();
 void removeUser(user * current_u);
+
 #endif				/* _BILLING_H */
