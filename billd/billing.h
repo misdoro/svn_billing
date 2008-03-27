@@ -139,6 +139,8 @@ typedef struct configuration {
 	string mysql_password;
 	string mysql_database;
 	MYSQL *myconn;
+	uint32_t mysql_connect_time;
+	uint32_t mysql_reconnect_interval;
 	//terminate application
 	bool terminate;
 	//put stats into DB
@@ -181,7 +183,7 @@ int daemonize(void);
 int verbose_mutex_lock(pthread_mutex_t *mutex);
 int verbose_mutex_unlock(pthread_mutex_t *mutex);
 
-user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr);
+user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr , uint32_t pstarttime, uint32_t pendtime);
 uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask);
 user_zone *getflowzone(user * curr_user, uint32_t dst_ip);
 MYSQL *connectdb();

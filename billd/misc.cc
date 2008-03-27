@@ -1,10 +1,10 @@
 #include "billing.h"
 
 // Get pointer to packet owner user:
-user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr)
+user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr, uint32_t pstarttime, uint32_t pendtime)
 {
 	for (user * p = firstuser; (p != NULL); p = p->next) {
-		if ((psrcaddr == p->user_ip) || (pdstaddr == p->user_ip)) {
+		if (((psrcaddr == p->user_ip) || (pdstaddr == p->user_ip)) && pstarttime >= p->session_start_time && (p->die_time==0 || pendtime <= p->die_time)) {
 			return p;
 		}
 	}

@@ -9,6 +9,8 @@ MYSQL * connectdb () {
 					cfg.mysql_database.c_str(),
 					cfg.mysql_port, NULL, 0);
 	cfg.myconn = lnk;
+	//Save connect time, then reconnect every reconnect_interval seconds
+	cfg.mysql_connect_time=time(NULL);
 	return lnk;
 }
 
@@ -17,7 +19,13 @@ void * statsupdater(void *threadid) {
 	// update values in database
 	while (cfg.terminate == 0) {
 		if ((time(NULL) - cfg.stats_updated_time) > cfg.stats_update_interval) {
-			if (cfg.debug_offload) printf("Updating stats in MySql...\n");        
+			if (cfg.debug_offload) printf("Updating stats in MySql...\n"); 
+			if ((cfg.mysql_connect_time+cfg.mysql_reconnect_interval) <= time(NULL) ){
+				verbose_mutex_lock (&mysql_mutex);
+				mysql_close(cfg.myconn);
+				cfg.myconn=connectdb();
+				verbose_mutex_unlock (&mysql_mutex);
+			};
 			cfg.stats_updated_time = time(NULL);
 			verbose_mutex_lock (&users_table_m);
 			for (user * u = firstuser; u != NULL; u = u->next) {
