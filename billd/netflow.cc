@@ -15,10 +15,10 @@ void fillhdr(pheader * phead, char *buf)
 
 	phead->pver = ntohs(phead->pver);
 	phead->nflows = ntohs(phead->nflows);
-	phead->uptime = htonl(phead->uptime);
-	phead->time = htonl(phead->time);
-	phead->ntime = htonl(phead->ntime);
-	phead->seq = htonl(phead->seq);
+	phead->uptime = ntohl(phead->uptime);
+	phead->time = ntohl(phead->time);
+	phead->ntime = ntohl(phead->ntime);
+	phead->seq = ntohl(phead->seq);
 }
 
 void fillflow(flowrecord * rec, char *buf)
@@ -42,15 +42,15 @@ void fillflow(flowrecord * rec, char *buf)
 	memcpy(&(rec->dst_as), buf + 42, 2);
 	memcpy(&(rec->src_mask), buf + 44, 1);
 	memcpy(&(rec->dst_mask), buf + 45, 1);
-	rec->srcaddr = htonl(rec->srcaddr);
-	rec->dstaddr = htonl(rec->dstaddr);
-	rec->nexthop = htonl(rec->nexthop);
+	rec->srcaddr = ntohl(rec->srcaddr);
+	rec->dstaddr = ntohl(rec->dstaddr);
+	rec->nexthop = ntohl(rec->nexthop);
 	rec->in_if = ntohs(rec->in_if);
 	rec->out_if = ntohs(rec->out_if);
-	rec->pktcount = htonl(rec->pktcount);
-	rec->bytecount = htonl(rec->bytecount);
-	rec->starttime = htonl(rec->starttime);
-	rec->endtime = htonl(rec->endtime);
+	rec->pktcount = ntohl(rec->pktcount);
+	rec->bytecount = ntohl(rec->bytecount);
+	rec->starttime = ntohl(rec->starttime);
+	rec->endtime = ntohl(rec->endtime);
 	rec->srcport = ntohs(rec->srcport);
 	rec->dstport = ntohs(rec->dstport);
 	rec->src_as = ntohs(rec->src_as);
@@ -102,7 +102,7 @@ void * netflowlistener(void *threadid)
 		for (n = 0; n < packet->nflows; n++) {
 			fillflow(&(records[n]), buf + 24 + n * 48);
 			verbose_mutex_lock(&users_table_m);//Lock all users while searching
-			currentuser = getuserbyip(records[n].srcaddr, records[n].dstaddr);
+			currentuser = getuserbyip(records[n].srcaddr, records[n].dstaddr,records[n].starttime,records[n].endtime);
 			verbose_mutex_unlock(&users_table_m);//Unlock them when done
 			
 			if (currentuser != NULL) {

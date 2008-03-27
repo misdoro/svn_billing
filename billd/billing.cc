@@ -16,7 +16,6 @@ user * firstuser;
 
 // configuration
 struct configuration cfg;
-FILE * mystdout;
 
 void err_func(char *msg) {
     perror(msg);
@@ -30,7 +29,6 @@ void mysigterm (int sig) {
 }
 
 int main(int argc, char** argv) {
-	mystdout = stdout;
 // here - read configuration from /usr/local/billing/billd.conf
 	ConfigFile config( "/usr/local/billing/billd.conf" );
 	cfg.terminate = 0;
@@ -41,6 +39,7 @@ int main(int argc, char** argv) {
 	config.readInto( cfg.mysql_database,	"billd_mysql_database",	string("billing"));
 	config.readInto( cfg.mysql_username,	"billd_mysql_username",	string(""));
 	config.readInto( cfg.mysql_password,	"billd_mysql_password",	string(""));
+	config.readInto( cfg.mysql_reconnect_interval, "billd_mysql_reconnect_interval", (uint32_t) 3600);
 	config.readInto( cfg.debug_locks,	"billd_debug_locks", 	false);
 	config.readInto( cfg.debug_netflow,	"billd_debug_netflow", 	false);
 	config.readInto( cfg.debug_offload,	"billd_debug_offload", 	false);	
@@ -57,11 +56,8 @@ int main(int argc, char** argv) {
 	config.readInto( cfg.lockfile,		"billd_lock_file",	string("/var/run/billd.lock"));
 	config.readInto( cfg.user,		"billd_run_user",	string("nobody"));
 	config.readInto( cfg.workingdir,	"billd_working_dir",	string("/"));
-	
-		
-	cfg.die_time_interval = 30;
-	// minimum time (in sec) before save stats to database
-	cfg.stats_update_interval = 25;
+	config.readInto( cfg.stats_update_interval, "billd_stats_update_interval", (uint32_t) 25);
+	config.readInto( cfg.die_time_interval, "billd_user_grace_time", (uint32_t) 30);
 	if (connectdb() == NULL) {
 		err_func("Error. Could not connect to database.\n");
 	}
@@ -98,10 +94,10 @@ int main(int argc, char** argv) {
 		printf("ERROR; return code from pthread_create() is %d\n", rc);
                 exit(-1);	
 	};
-	if (mystdout != stdout) fflush(mystdout);
+	if (cfg.do_fork) fflush(stdout);
 	while (!cfg.terminate) sleep(1);
 	sleep(3);
-	if (mystdout!=stdout) fclose(mystdout);
+	if (cfg.do_fork) fclose(stdout);
 	pthread_exit(NULL);
 }
 
