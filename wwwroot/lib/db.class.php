@@ -15,7 +15,7 @@ class DB
 	public static $query = '';
 	
 	public static function connect() {
-		$db = $GLOBALS['CORE_DB'];
+		$db = $GLOBALS['MYSQL_DB'];
 		self::$link = mysqli_connect($db['host'],$db['user'],$db['pass'],$db['db'],$db['port']);
         if (!self::$link)
             throw new DBException('cannt connect to db');
