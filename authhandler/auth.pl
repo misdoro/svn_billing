@@ -59,7 +59,7 @@ sub LDAPsearch
 my @Attrs = ('uid','userPassword' );               # request username,userpassword
 
 my $uid=$args{"USER_NAME"};
-$uid=~s/([^a-zA-Z0-9])//g;
+$uid=~s/([^a-zA-Z0-9_])//g;
 
 my $result = LDAPsearch ( $ldap, "uid=$uid", \@Attrs );
 

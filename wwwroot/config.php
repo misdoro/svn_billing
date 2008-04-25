@@ -1,5 +1,5 @@
 <?
-$mysql_host='192.168.64.252';
+$mysql_host='localhost';
 $mysql_port=3306;
 $mysql_user='billing';
 $mysql_password='billadm';
