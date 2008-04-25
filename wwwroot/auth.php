@@ -12,8 +12,8 @@ if (isset($_GET['logout'])){
 //If we are calling ourself:
 if (strstr($_SERVER['PHP_SELF'],'auth.php')){
 	if (isset($_POST['username']) && isset($_POST['password'])){
-		$_SESSION['username']=preg_replace("/([^a-zA-Z0-9])/","",$_POST['username']);
-		$_SESSION['password']=preg_replace("/([^a-zA-Z0-9])/","",$_POST['password']);
+		$_SESSION['username']=preg_replace("/([^a-zA-Z0-9_])/","",$_POST['username']);
+		$_SESSION['password']=preg_replace("/([^a-zA-Z0-9_])/","",$_POST['password']);
 		header('Location: index.php');
 		exit;
 	}else {
