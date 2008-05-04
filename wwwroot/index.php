@@ -2,10 +2,10 @@
 require ('auth.php');
 require ('mysql.php');
 echo '<html><head>';
-echo '<Meta http-equiv="Content-type" content="Text/html;charset=koi8-r">';
-echo '<title>Личный кабинет: '.$_SESSION['fullname'].'</title>';
+echo '<Meta http-equiv="Content-type" content="Text/html;charset=utf-8">';
+echo '<title>п⌡п╦я┤п╫я▀п╧ п╨п╟п╠п╦п╫п╣я┌: '.$_SESSION['fullname'].'</title>';
 echo '</head><body>';
-echo 'Здравствуйте, '.$_SESSION['firstname'].'!';
+echo 'п≈п╢я─п╟п╡я│я┌п╡я┐п╧я┌п╣, '.$_SESSION['firstname'].'!';
 
 //Print out credit and debit values:
 $query='select id,debit,credit from users where login=\''.$_SESSION['username'].'\';';
@@ -14,13 +14,15 @@ $res=$mysqli->query($query);
 $l=$res->fetch_row();
 if ($l){
 	$_SESSION['id']=$l[0];
-	echo "<br>Баланс лицевого счета: ".sprintf('%f',$l[1]).' рублей.';
-	echo "<br>Кредит: ".sprintf('%f',$l[2]).' рублей.';
+	echo "<br>п▒п╟п╩п╟п╫я│ п╩п╦я├п╣п╡п╬пЁп╬ я│я┤п╣я┌п╟: ".sprintf('%f',$l[1]).' я─я┐п╠п╩п╣п╧.';
+	echo "<br>п я─п╣п╢п╦я┌: ".sprintf('%f',$l[2]).' я─я┐п╠п╩п╣п╧.';
 }
 
 
-echo '<br><a href="stats.php">Статистика интернет</a>';
-echo '<br><a href="index.php?logout=1">Выйти!</a>';
+echo '<br><a href="stats.php">п║я┌п╟я┌п╦я│я┌п╦п╨п╟ п╦п╫я┌п╣я─п╫п╣я┌</a>';
+if ($_SESSION['is_admin']) echo '<br><a href="admin.php">п░п╢п╪п╦п╫п╨п╟</a>';
+if ($_SESSION['is_cash_admin']) echo '<br><a href="payment.php">п≈п╟я┤п╦я│п╩п╣п╫п╦п╣ п©п╩п╟я┌п╣п╤п╣п╧</a>';
+echo '<br><a href="index.php?logout=1">п▓я▀п╧я┌п╦!</a>';
 echo '</body></html>';
 
 ?>
