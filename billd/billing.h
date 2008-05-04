@@ -22,7 +22,11 @@
 #include <strings.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/endian.h>
+#ifdef linux
+#include <endian.h>
+#elif defined(__FreeBSD__)
+#include <machine/endian.h>
+#endif
 #include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/stat.h>

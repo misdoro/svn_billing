@@ -29,8 +29,8 @@ void mysigterm (int sig) {
 }
 
 int main(int argc, char** argv) {
-// here - read configuration from /usr/local/billing/billd.conf
-	ConfigFile config( "/usr/local/billing/billd.conf" );
+// here - read configuration from /etc/billd.conf
+	ConfigFile config( "/etc/billd.conf" );
 	cfg.terminate = 0;
 	config.readInto( cfg.netflow_listen_port, "billd_netflow_port" );//Port to listen for netflow data
 	config.readInto( cfg.events_listen_port, "billd_events_port");//Port to listen for events

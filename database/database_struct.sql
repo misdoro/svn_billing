@@ -144,3 +144,13 @@ CREATE TABLE IF NOT EXISTS `userpacks` (
 	key `pack_id` (`pack_id`),
 	key `date_on` (`date_on`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+
+CREATE TABLE IF NOT EXISTS `oplog` (
+	`id` int unsigned NOT NULL auto_increment,	/*Record ID*/
+	`uid` int unsigned NOT NULL default '0',		/*Who taken action*/
+	`query` text NOT NULL,	/*SQL query in action*/
+	`date` timestamp NOT NULL default CURRENT_TIMESTAMP, /*Date executed*/
+	PRIMARY KEY  (`id`),
+	key `user_id` (`uid`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
