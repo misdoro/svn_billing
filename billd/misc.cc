@@ -1,10 +1,45 @@
 #include "billing.h"
 
+pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void logmsg ( uint8_t flags, char* message, ...)
+{
+	if ((flags & DBG_LOCKS && cfg.debug_locks) ||
+		(flags & DBG_EVENTS && cfg.debug_events) ||
+		(flags & DBG_NETFLOW && cfg.debug_netflow) ||
+		(flags & DBG_OFFLOAD && cfg.debug_offload) ||
+		(flags & DBG_DAEMON && cfg.verbose_daemonize) ||
+		(flags & DBG_ALWAYS))
+	{
+		pthread_mutex_lock(&log_mutex);
+		if (cfg.log_date){
+			time_t rawtime;
+			time(&rawtime);
+			char buf[50];
+			strftime(buf,50, "%c", localtime ( &rawtime ));
+			cout << buf << ": " ;
+		};
+		va_list args;
+		va_start (args, message);
+		vprintf (message, args);
+		if (errno){
+			cout << " " << strerror(errno);
+			errno=0;
+		};
+		cout << endl;
+		va_end (args);
+		pthread_mutex_unlock(&log_mutex);
+		errno=0;
+	};
+}
+
 // Get pointer to packet owner user:
 user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr, uint32_t pstarttime, uint32_t pendtime)
 {
 	for (user * p = firstuser; (p != NULL); p = p->next) {
-		if (((psrcaddr == p->user_ip) || (pdstaddr == p->user_ip)) && pstarttime >= p->session_start_time && (p->die_time==0 || pendtime <= p->die_time)) {
+		if (((psrcaddr == p->user_ip) || (pdstaddr == p->user_ip))
+		 && pstarttime >= p->session_start_time
+		 && (p->die_time==0 || pendtime <= p->die_time)) {
 			return p;
 		}
 	}
@@ -13,30 +48,26 @@ user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr, uint32_t pstarttime, ui
 
 int verbose_mutex_lock(pthread_mutex_t *mutex){
 	int res = pthread_mutex_trylock(mutex);
-	if (res==0){
-		if (cfg.debug_locks) printf("lock and go!\n");
-	}else{	
+	if (res==0)	logmsg(DBG_LOCKS,"%s %i","lock and go ",mutex);
+	else{
 		pthread_mutex_lock(mutex);
-		if (cfg.debug_locks) printf("lock and wait!\n");
+		logmsg(DBG_LOCKS,"%s %i","lock and wait ",mutex);
 	};
 	return res;
 };
 
 int verbose_mutex_unlock(pthread_mutex_t *mutex){
 	int res=pthread_mutex_unlock(mutex);
-	if (res==0){
-		if (cfg.debug_locks) printf("unlocked!\n");
-	}else {
-		if (cfg.debug_locks) printf("was not locked!\n");
-	};
+	if (res==0) logmsg(DBG_LOCKS,"%s %i","unlocked ",mutex);
+	else logmsg(DBG_LOCKS,"%s %i","was not locked ",mutex);
 	return res;
 };
 
 //shift given ip number by mask bits:
 uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask)
 {
-	if (mask == 0)
-		return 0;
+	//if (mask == 0)
+	//	return 0;
 	return unmasked_ip >> (32 - mask);
 }
 
@@ -86,21 +117,21 @@ void removeUser(user * current_u)
 		p = p->next;
 		delete previous_zone;
 	}
-	printf("Removing user %i...", current_u->id);
+	logmsg(DBG_EVENTS,"Removing user %i...", current_u->id);
 	//remove user
 	if (firstuser == current_u) {
 		user *previous_u = firstuser;
 		firstuser = firstuser->next;
 		delete previous_u;
-		printf("OK\n");
+		logmsg(DBG_EVENTS,"Removed first user");
 	} else {
 		for (user * u = firstuser; u != NULL;) {
 			if (u->next == current_u){
 				user *todelete_u = u->next;
 				u->next = todelete_u->next;
 				delete todelete_u;
-                                printf("OK\n");
-                                break;
+				logmsg(DBG_EVENTS,"Removed subsequent user");
+				break;
 			}else{
 				u = u->next;
 			};
@@ -137,15 +168,14 @@ user *onUserConnected(char *session_id)
 {
 	char sql[32768];
 	MYSQL_RES *result;
-//get user info from session:
+	//get user info from session:
 	sprintf(sql, "SELECT sessions.user_id, users.debit, users.credit, sessions.ppp_ip, sessions.id, sessions.nas_linkname from sessions,users where sessions.session_id='%s' and sessions.state=2 and users.id=sessions.user_id", session_id);
-	//sprintf(sql, "SELECT id, debit, credit, user_ip FROM users WHERE login='%s' LIMIT 1", username);
 	verbose_mutex_lock (&mysql_mutex);
 	mysql_query(cfg.myconn, sql);
 	result = mysql_store_result(cfg.myconn);
 	if (mysql_num_rows(result) == 0) {
-		printf("Warning! Session %s not found or is wrong\n", session_id);
-		//!!!-drop user here
+		logmsg(DBG_EVENTS,"Warning! Session %s not found or is wrong", session_id);
+		//can't drop user here, sorry. Don't know his NAS and link num
 		return NULL;
 	}
 	MYSQL_ROW row = mysql_fetch_row(result);
@@ -167,16 +197,16 @@ user *onUserConnected(char *session_id)
 	pthread_mutex_t	mutex = PTHREAD_MUTEX_INITIALIZER;
 	newuser->user_mutex = mutex;
 	newuser->user_drop_thread = 0;
-	printf("User info - id:%s, debit:%s, credit:%s\n", row[0], row[1], row[2]);
+	logmsg(DBG_EVENTS,"User info - id:%s, debit:%s, credit:%s", row[0], row[1], row[2]);
 	mysql_free_result(result);
 	verbose_mutex_unlock (&mysql_mutex);
 	//get user groups
-	sprintf(sql, "SELECT usergroups.group_id,groupnames.mb_cost FROM usergroups,groupnames WHERE user_id=%i and usergroups.group_id=groupnames.id LIMIT 128", newuser->id);
+	sprintf(sql, "SELECT usergroups.group_id,groupnames.mb_cost FROM usergroups,groupnames WHERE user_id=%i and usergroups.group_id=groupnames.id", newuser->id);
 	verbose_mutex_lock (&mysql_mutex);
 	mysql_query(cfg.myconn, sql);
 	result = mysql_store_result(cfg.myconn);
 	if (mysql_num_rows(result) == 0) {
-		printf("Warning! No groups for user %i found.\n", newuser->id);
+		logmsg(DBG_EVENTS,"Warning! No groups for user %i found.", newuser->id);
 		//drop user
 		disconnect_user(newuser);
 		delete newuser;
@@ -201,20 +231,12 @@ user *onUserConnected(char *session_id)
 			p->next = newgroup;
 		}
 
-		printf("User %i. Group %i\n", newuser->id, newgroup->id);
+		logmsg(DBG_EVENTS,"User %i. Group %i", newuser->id, newgroup->id);
 	}
 	mysql_free_result(result);
 	verbose_mutex_unlock (&mysql_mutex);
 
-	//load zones - create sql query
-	/*sprintf(sql, "SELECT allzones.id, zone_groups.group_id  AS group_id, allzones.ip, allzones.mask, allzones.dstport, (SELECT mb_cost FROM groupnames WHERE group_id = groupnames.id) AS mb_cost FROM allzones INNER JOIN zone_groups ON zone_groups.zone_id = allzones.id WHERE ");
-	for (zone_group * p = newuser->first_zone_group; (p != NULL); p = p->next) {
-		sprintf(sql, "%s (zone_groups.group_id = %i)", sql, p->id);
-		if (p->next != NULL)
-			sprintf(sql, "%s OR ", sql);
-	}
-	sprintf(sql, "%s ORDER BY zone_groups.priority DESC", sql);
-	*/
+	//load zones
 	sprintf(sql, "select allzones.id, zone_groups.group_id, allzones.ip, allzones.mask, allzones.dstport, zone_groups.priority from allzones,zone_groups where allzones.id = zone_groups.zone_id and zone_groups.group_id in (select group_id from usergroups where user_id=%i) order by zone_groups.priority DESC;",newuser->id);
 	verbose_mutex_lock (&mysql_mutex);
 	mysql_query(cfg.myconn, sql);
@@ -229,13 +251,13 @@ user *onUserConnected(char *session_id)
 		zone_group *p;
 		for (p = newuser->first_zone_group; (p->next != NULL && p->id != zone_group_id); p = p->next);
 		newzone->group_ref = p;
-		
+
 		newzone->zone_ip = atoll(row[2]);
 		newzone->zone_mask = atoi(row[3]);
 		newzone->zone_dstport = atoi(row[4]);
 		newzone->zone_in_bytes = 0;
 		newzone->zone_out_bytes = 0;
-		printf("Loaded zone. id=%i, zone_group_id=%i, ip=%s\n", newzone->id, (newzone->group_ref)->id, ipFromIntToStr(newzone->zone_ip));
+		logmsg(DBG_EVENTS,"Loaded zone. id=%i, zone_group_id=%i, ip=%s", newzone->id, (newzone->group_ref)->id, ipFromIntToStr(newzone->zone_ip));
 		if (newuser->first_user_zone == NULL) {
 			newuser->first_user_zone = newzone;
 		} else {
@@ -246,12 +268,12 @@ user *onUserConnected(char *session_id)
 	}
 	mysql_free_result(result);
 	verbose_mutex_unlock (&mysql_mutex);
-	printf("Zones loaded.\n");
+	logmsg(DBG_EVENTS,"Zones loaded.");
 	//add user to list
 	verbose_mutex_lock(&users_table_m);
 	addUser(newuser);
 	verbose_mutex_unlock(&users_table_m);
-	printf("User added.\n");
+	logmsg(DBG_EVENTS,"User added.");
 	return newuser;
 }
 
@@ -269,9 +291,9 @@ void onUserDisconnected(char *session_id)
 		}
 	}
 	verbose_mutex_unlock(&users_table_m);
-		
+
 	if (user_found == 0) {
-		printf("Warning! Session %s not found!\n", session_id);
+		logmsg(DBG_EVENTS,"Warning! Session %s not found!", session_id);
 		return;
 	}
 
@@ -295,17 +317,17 @@ void * dropUser(void * userstr){
 		struct hostent *hostInfo;
 		socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
 		if (socketDescriptor < 0) {
-			printf("Error creating socket!\n");
+			logmsg(DBG_EVENTS,"Error creating disconnect socket!");
 		}else{
 			hostInfo = gethostbyname(cfg.mpd_shell_addr.c_str());
 			if (hostInfo == NULL) {
-				printf("Something is wrong with address!\n");
+				logmsg(DBG_EVENTS,"Something is wrong with MPD address!");
 			}else{
 				serverAddress.sin_family = hostInfo->h_addrtype;
 				memcpy((char *) &serverAddress.sin_addr.s_addr, hostInfo->h_addr_list[0], hostInfo->h_length);
 				serverAddress.sin_port = htons(cfg.mpd_shell_port);
 				if (connect(socketDescriptor, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0) {
-					printf("cannot connect\n");
+					logmsg(DBG_EVENTS,"cannot connect to MPD console");
 				}else{
 					stringstream buffer;
 					sleep(1);
@@ -325,7 +347,7 @@ void * dropUser(void * userstr){
                                         buffer << "close" << endl;
 					send(socketDescriptor, buffer.str().c_str(), strlen(buffer.str().c_str()) + 1, 0);
 					sleep(1);
-					cout << "link " << link_name << " disconnected" << endl;
+					logmsg(DBG_EVENTS,"link %s disconnected",link_name.c_str());
 				};
 			};
 			close(socketDescriptor);
@@ -339,7 +361,7 @@ int disconnect_user (user * drophim){
         int state=0;
 	if (drophim->user_drop_thread==0 && drophim->die_time==0){
                 pthread_create(&(drophim->user_drop_thread), NULL, dropUser, (void *) drophim);
-        }else { 
+        }else {
 		state=1;
 	};
         verbose_mutex_unlock(&(drophim->user_mutex));

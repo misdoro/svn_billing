@@ -1,4 +1,4 @@
-// 
+//
 // File:   billing.cc
 // Author: flexx
 //
@@ -17,22 +17,18 @@ user * firstuser;
 // configuration
 struct configuration cfg;
 
-void err_func(char *msg) {
-    perror(msg);
-    exit(0);
-}
-
 // need to close all files, kill threads e.t.c.
 void mysigterm (int sig) {
-	printf("Terminating application...\n");
-	cfg.terminate = 1;
+	logmsg(DBG_ALWAYS,"Terminating application...\n");
+	cfg.stayalive=false;
 }
 
 int main(int argc, char** argv) {
 // here - read configuration from /etc/billd.conf
 	ConfigFile config( "/etc/billd.conf" );
-	cfg.terminate = 0;
+	cfg.stayalive=true;
 	config.readInto( cfg.netflow_listen_port, "billd_netflow_port" );//Port to listen for netflow data
+	config.readInto( cfg.netflow_timeout, "billd_netflow_timeout",(uint16_t) 5);
 	config.readInto( cfg.events_listen_port, "billd_events_port");//Port to listen for events
 	config.readInto( cfg.mysql_server,	"billd_mysql_host",	string("127.0.0.1"));
 	config.readInto( cfg.mysql_port,	"billd_mysql_port",	(uint16_t) 3306);
@@ -42,10 +38,11 @@ int main(int argc, char** argv) {
 	config.readInto( cfg.mysql_reconnect_interval, "billd_mysql_reconnect_interval", (uint32_t) 3600);
 	config.readInto( cfg.debug_locks,	"billd_debug_locks", 	false);
 	config.readInto( cfg.debug_netflow,	"billd_debug_netflow", 	false);
-	config.readInto( cfg.debug_offload,	"billd_debug_offload", 	false);	
+	config.readInto( cfg.debug_offload,	"billd_debug_offload", 	false);
 	config.readInto( cfg.debug_events,	"billd_debug_events",	false);
+	config.readInto( cfg.log_date,	"billd_log_date",	true);
 	config.readInto( cfg.verbose_daemonize,	"billd_debug_daemonize",false);
-	config.readInto( cfg.do_fork,		"billd_daemon_mode",	true);	
+	config.readInto( cfg.do_fork,		"billd_daemon_mode",	true);
 	config.readInto( cfg.mpd_shell_port,	"billd_mpd_shell_port");
 	config.readInto( cfg.mpd_shell_addr,	"billd_mpd_shell_addr");
 	config.readInto( cfg.mpd_shell_user,	"billd_mpd_shell_user");
@@ -59,7 +56,7 @@ int main(int argc, char** argv) {
 	config.readInto( cfg.stats_update_interval, "billd_stats_update_interval", (uint32_t) 25);
 	config.readInto( cfg.die_time_interval, "billd_user_grace_time", (uint32_t) 30);
 	if (connectdb() == NULL) {
-		err_func("Error. Could not connect to database.\n");
+		logmsg(DBG_ALWAYS,"Error. Could not connect to database.\n");
 	}
 //	makeDBready();
 
@@ -79,23 +76,23 @@ int main(int argc, char** argv) {
 //Create user connect/disconnect listener
 	rc = pthread_create(&threads[0], NULL, userconnectlistener, (void *)t);
 	if (rc) {
-		printf("ERROR; return code from pthread_create() is %d\n", rc);
+		logmsg(DBG_ALWAYS,"ERROR; return code from pthread_create() is %d\n", rc);
 		exit(-1);
 	}
 //Create NETFLOW listener
 	rc = pthread_create(&threads[1], NULL, netflowlistener, (void *)t);
 	if (rc) {
-		printf("ERROR; return code from pthread_create() is %d\n", rc);
+		logmsg(DBG_ALWAYS,"ERROR; return code from pthread_create() is %d\n", rc);
 		exit(-1);
 	}
 //Create stats update thread:
 	rc = pthread_create(&threads[2], NULL, statsupdater, (void *)t);
         if (rc) {
-		printf("ERROR; return code from pthread_create() is %d\n", rc);
-                exit(-1);	
+		logmsg(DBG_ALWAYS,"ERROR; return code from pthread_create() is %d\n", rc);
+		exit(-1);
 	};
 	if (cfg.do_fork) fflush(stdout);
-	while (!cfg.terminate) sleep(1);
+	while (cfg.stayalive) sleep(1);
 	sleep(3);
 	if (cfg.do_fork) fclose(stdout);
 	pthread_exit(NULL);

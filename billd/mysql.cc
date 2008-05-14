@@ -15,11 +15,11 @@ MYSQL * connectdb () {
 }
 
 void * statsupdater(void *threadid) {
-	printf("started stats offloading thread\n");
+	logmsg(DBG_OFFLOAD,"started stats offloading thread");
 	// update values in database
-	while (cfg.terminate == 0) {
+	while (cfg.stayalive) {
 		if ((time(NULL) - cfg.stats_updated_time) > cfg.stats_update_interval) {
-			if (cfg.debug_offload) printf("Updating stats in MySql...\n"); 
+			logmsg(DBG_OFFLOAD,"Updating stats in MySql...");
 			if ((cfg.mysql_connect_time+cfg.mysql_reconnect_interval) <= time(NULL) ){
 				verbose_mutex_lock (&mysql_mutex);
 				mysql_close(cfg.myconn);
@@ -29,14 +29,14 @@ void * statsupdater(void *threadid) {
 			cfg.stats_updated_time = time(NULL);
 			verbose_mutex_lock (&users_table_m);
 			for (user * u = firstuser; u != NULL; u = u->next) {
-				if (cfg.debug_offload) printf ("Session %s:\n",u->verbose_session_id.c_str());
+				logmsg(DBG_OFFLOAD,"Session %s:",u->verbose_session_id.c_str());
 				zone_group * p = u->first_zone_group;
 				verbose_mutex_unlock (&users_table_m);
 				verbose_mutex_lock (&(u->user_mutex));
 				double charged_money=0;
 				//Save stat record for each of user's groups:
 				while (p != NULL){
-					if (cfg.debug_offload) printf("   group %i: in %lu out %lu \n",p->id, p->in_diff,p->out_diff);
+					logmsg(DBG_OFFLOAD,"   group %i: in %lu out %lu ",p->id, p->in_diff,p->out_diff);
 					if (p->group_changed == 1) {
 						char * sql = new char[1024];
 						double money = (double) p->in_diff * p->zone_mb_cost / (double) MB_LENGTH;
@@ -45,7 +45,7 @@ void * statsupdater(void *threadid) {
 						verbose_mutex_lock (&mysql_mutex);
 						mysql_query(cfg.myconn, sql);
 						verbose_mutex_unlock (&mysql_mutex);
-						printf("%s\n",sql);
+						logmsg(DBG_OFFLOAD,"%s",sql);
 						delete sql;
 						p->in_diff=0;
 						p->out_diff=0;
@@ -60,7 +60,7 @@ void * statsupdater(void *threadid) {
 					verbose_mutex_lock (&mysql_mutex);
 					mysql_query(cfg.myconn, sql);
 					verbose_mutex_unlock (&mysql_mutex);
-					printf("%s\n",sql);
+					logmsg(DBG_OFFLOAD,"%s",sql);
 					delete sql;
 				}
 				//Check user's debit and drop him if he is out of funds:
@@ -71,7 +71,7 @@ void * statsupdater(void *threadid) {
 				verbose_mutex_lock (&mysql_mutex);
 				mysql_query(cfg.myconn, sql);
 				delete sql;
-				result = mysql_store_result(cfg.myconn);				
+				result = mysql_store_result(cfg.myconn);
 				MYSQL_ROW row = mysql_fetch_row(result);
 				//Disconnect user if he has not enough money!
 				if (atof(row[0])<0){

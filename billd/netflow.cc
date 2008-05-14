@@ -1,6 +1,6 @@
 #include "billing.h"
 
-void fillhdr(pheader * phead, char *buf)
+int fillhdr(pheader * phead, char *buf)
 {
 	//Fill in packet struct and swap byteorder where and if needed:
 	memcpy(&(phead->pver), buf, 2);
@@ -19,6 +19,8 @@ void fillhdr(pheader * phead, char *buf)
 	phead->time = ntohl(phead->time);
 	phead->ntime = ntohl(phead->ntime);
 	phead->seq = ntohl(phead->seq);
+	if (phead->nflows>30) return 1;	//Warning! Malformed packet! Discard it! It can't contain more than 30 flow records!
+	else return 0;
 }
 
 void fillflow(flowrecord * rec, char *buf)
@@ -66,15 +68,20 @@ void * netflowlistener(void *threadid)
 	struct sockaddr_in from;
 	socklen_t fromlen;
 	char buf[1470];
-	printf("Created netflow thread\n");
+	logmsg(DBG_NETFLOW,"Created netflow thread");
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock < 0) err_func("Opening socket");
+	if (sock < 0) logmsg(DBG_NETFLOW,"Error opening netflow socket");
 	length = sizeof(server);
 	bzero(&server, length);
 	server.sin_family = AF_INET;
-	server.sin_addr.s_addr = htonl(INADDR_ANY);
+	server.sin_addr.s_addr = htonl(cfg.netflow_listen_addr);
 	server.sin_port = htons(cfg.netflow_listen_port);
-	//need free ! !!!!
+	//Define timeouts for rcvfrom
+	timeval tv;
+	tv.tv_sec = cfg.netflow_timeout;
+	tv.tv_usec = 0;
+	setsockopt (sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(timeval));
+	//Create vars for packet data
 	pheader * packet = new pheader;
 	flowrecord *records = new flowrecord[30];
 	user *currentuser;
@@ -82,64 +89,77 @@ void * netflowlistener(void *threadid)
 	uint32_t dst_ip;
 	user_zone *currentzone;
 	if (bind(sock, (struct sockaddr *)&server, length) < 0)
-	err_func("binding");
+	logmsg(DBG_NETFLOW,"Error binding netflow socket");
 	fromlen = sizeof(struct sockaddr_in);
-	while (1) {
+	while (cfg.stayalive) {
 		n = recvfrom(sock, buf, 1470, 0, (struct sockaddr *)&from, &fromlen);
-		if (n < 0) err_func("recvfrom");
-		fillhdr(packet, buf);
-		if (cfg.debug_netflow) printf("received datagram!\n");
-		//Fill in packet data
-		// Protocol version
-		if (cfg.debug_netflow) printf("Protocol version: %i\n", packet->pver);
-		//Number of flows:
-		if (cfg.debug_netflow) printf("Number of flows: %i\n", packet->nflows);
-		//NAS uptime:
-		if (cfg.debug_netflow) printf("NAS uptime: %i\n", packet->uptime);
-		//flow_sequence
-		if (cfg.debug_netflow) printf("First flow sequence: %i\n", packet->seq);
+		if (n < 0 && errno!=EAGAIN) logmsg(DBG_NETFLOW,"Error receiving netflow datagram");
+		else if (n<0 &&	errno==EAGAIN ){	//Recvfrom exited by timeout, necessary to exit properly
+			logmsg(DBG_NETFLOW,"Netflow listener timeout");
+			continue;
+		};
+		if (fillhdr(packet, buf)) {
+			continue;
+			//message("recieved malformed datagram from")
+		}
+		else
+		{
 
-		for (n = 0; n < packet->nflows; n++) {
-			fillflow(&(records[n]), buf + 24 + n * 48);
-			verbose_mutex_lock(&users_table_m);//Lock all users while searching
-			currentuser = getuserbyip(records[n].srcaddr, records[n].dstaddr,records[n].starttime,records[n].endtime);
-			verbose_mutex_unlock(&users_table_m);//Unlock them when done
-			
-			if (currentuser != NULL) {
-				if (cfg.debug_netflow) printf("Got user %i\n",currentuser->session_id);
-				verbose_mutex_lock(&(currentuser->user_mutex));
-				//Get flow direction(0->out, 1->in)
-				dst_ip = (records[n].srcaddr == currentuser->user_ip ? records[n].dstaddr : records[n].srcaddr);
-				flow_direction = (records[n].srcaddr == currentuser->user_ip ? 0 : 1);
-				currentzone = getflowzone(currentuser, dst_ip);
-				if (currentzone != NULL) {
-					if (flow_direction == 0) 
-					{
-						currentzone->group_ref->out_bytes += records[n].bytecount;
-						currentzone->group_ref->out_diff += records[n].bytecount;
-						currentzone->group_ref->group_changed = 1;
-						currentzone->zone_out_bytes += records[n].bytecount;
-					}
-					else if (flow_direction == 1) 
-					{
-						currentzone->group_ref->in_bytes += records[n].bytecount;
-						currentzone->group_ref->in_diff += records[n].bytecount;
-						currentzone->group_ref->group_changed = 1;
-						currentzone->zone_in_bytes += records[n].bytecount;
-					}
-					if (cfg.debug_netflow) printf("Record %i: session %i, in: %lu, out: %lu\n",packet->seq+n,currentuser->session_id,currentzone->group_ref->in_bytes,currentzone->group_ref->out_bytes);
+			logmsg(DBG_NETFLOW,"received datagram!\n");
+			//Fill in packet data
+			// Protocol version
+			logmsg(DBG_NETFLOW,"Protocol version: %i\n", packet->pver);
+			//Number of flows:
+			logmsg(DBG_NETFLOW,"Number of flows: %i\n", packet->nflows);
+			//NAS uptime:
+			logmsg(DBG_NETFLOW,"NAS uptime: %i\n", packet->uptime);
+			//flow_sequence
+			logmsg(DBG_NETFLOW,"First flow sequence: %i\n", packet->seq);
+			//Fill in packet data
+			for (n = 0; n < packet->nflows; n++) {
+				fillflow(&(records[n]), buf + 24 + n * 48);
+				verbose_mutex_lock(&users_table_m);//Lock all users while searching
+				currentuser = getuserbyip(records[n].srcaddr, records[n].dstaddr,records[n].starttime,records[n].endtime);
+				verbose_mutex_unlock(&users_table_m);//Unlock them when done
+
+				if (currentuser != NULL) {
+					logmsg(DBG_NETFLOW,"Got user %i\n",currentuser->session_id);
+					verbose_mutex_lock(&(currentuser->user_mutex));
+					//Get flow direction(0->out, 1->in)
+					dst_ip = (records[n].srcaddr == currentuser->user_ip ? records[n].dstaddr : records[n].srcaddr);
+					flow_direction = (records[n].srcaddr == currentuser->user_ip ? 0 : 1);
+					currentzone = getflowzone(currentuser, dst_ip);
+					if (currentzone != NULL) {
+						if (flow_direction == 0)
+						{
+							currentzone->group_ref->out_bytes += records[n].bytecount;
+							currentzone->group_ref->out_diff += records[n].bytecount;
+							currentzone->group_ref->group_changed = 1;
+							currentzone->zone_out_bytes += records[n].bytecount;
+						}
+						else if (flow_direction == 1)
+						{
+							currentzone->group_ref->in_bytes += records[n].bytecount;
+							currentzone->group_ref->in_diff += records[n].bytecount;
+							currentzone->group_ref->group_changed = 1;
+							currentzone->zone_in_bytes += records[n].bytecount;
+						}
+						logmsg(DBG_NETFLOW,"Record %i: session %i, in: %lu, out: %lu\n",packet->seq+n,currentuser->session_id,currentzone->group_ref->in_bytes,currentzone->group_ref->out_bytes);
+					} else {
+						logmsg(DBG_NETFLOW,"Warning! Zone not found! (uid: %u, srcaddr: %u, dscaddr %u)\n", currentuser->id, records[n].srcaddr, records[n].dstaddr);
+					};
+					verbose_mutex_unlock(&(currentuser->user_mutex));
 				} else {
-					if (cfg.debug_netflow) printf("Warning! Zone not found! (uid: %u, srcaddr: %u, dscaddr %u)\n", currentuser->id, records[n].srcaddr, records[n].dstaddr);
+					char *src = ipFromIntToStr(records[n].srcaddr);
+					char *dst = ipFromIntToStr(records[n].dstaddr);
+					logmsg(DBG_NETFLOW,"Warning! User not found (srcaddr: %s, dstaddr %s)\n", src, dst);
+					delete src;
+					delete dst;
 				};
-				verbose_mutex_unlock(&(currentuser->user_mutex));
-			} else {
-				char *src = ipFromIntToStr(records[n].srcaddr);
-				char *dst = ipFromIntToStr(records[n].dstaddr);
-				if (cfg.debug_netflow) printf("Warning! User not found (srcaddr: %s, dstaddr %s)\n", src, dst);
-				delete src;
-				delete dst;
 			};
 		};
 	};
+	delete packet;
+	delete records;
 	pthread_exit(NULL);
 }

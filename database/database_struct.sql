@@ -145,7 +145,9 @@ CREATE TABLE IF NOT EXISTS `userpacks` (
 	key `date_on` (`date_on`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
-
+/*
+Operations log (all updates and inserts using web-interface)
+*/
 CREATE TABLE IF NOT EXISTS `oplog` (
 	`id` int unsigned NOT NULL auto_increment,	/*Record ID*/
 	`uid` int unsigned NOT NULL default '0',		/*Who taken action*/
@@ -154,3 +156,14 @@ CREATE TABLE IF NOT EXISTS `oplog` (
 	PRIMARY KEY  (`id`),
 	key `user_id` (`uid`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+/*
+Table for NAS list:
+*/
+CREATE TABLE IF NOT EXISTS `naslist` (
+	`id` int unsigned NOT NULL auto_increment,	/*just NAS ID*/
+	`ip` int unsigned NOT NULL default '0',			/*IP for netflow and userconnect events*/
+	`port` smallint unsigned NOT NULL default '0',	/*source port for netflow datagrams*/
+	`comment` varchar(255) NOT NULL,	/*some info*/
+	PRIMARY KEY  (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
