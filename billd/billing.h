@@ -1,6 +1,6 @@
 /*
  * File:   billing.h Author: flexx
- * 
+ *
  */
 
 #ifndef _BILLING_H
@@ -15,7 +15,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#include <pwd.h>//?
+#include <pwd.h>	//uid_t etc
 #include <signal.h>
 #include <stdarg.h>
 #include <string.h>
@@ -32,6 +32,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <errno.h>
 #include <sys/uio.h>
 #include <unistd.h>
 
@@ -127,6 +128,7 @@ typedef struct configuration {
 	uint32_t netflow_listen_addr;
 	uint16_t netflow_source_port;
 	uint32_t netflow_source_addr;
+	uint16_t netflow_timeout;
 	uint16_t events_listen_port;
 	uint32_t events_listen_addr;
 	uint16_t events_source_port;
@@ -146,7 +148,7 @@ typedef struct configuration {
 	uint32_t mysql_connect_time;
 	uint32_t mysql_reconnect_interval;
 	//terminate application
-	bool terminate;
+	bool stayalive;
 	//put stats into DB
 	uint32_t stats_updated_time;
 	uint32_t stats_update_interval;
@@ -159,43 +161,48 @@ typedef struct configuration {
 	bool verbose_daemonize;
 	bool do_fork;
 	bool appendlogs;
+	bool log_date;
 	string logfile;
 	string pidfile;
 	string lockfile;
 	string user;
 	string workingdir;
 };
+#define DBG_LOCKS 1
+#define DBG_NETFLOW 2
+#define DBG_OFFLOAD 4
+#define DBG_EVENTS 8
+#define DBG_DAEMON 16
+#define DBG_ALWAYS 128
 
 extern user *firstuser;
 extern configuration cfg;
 extern pthread_mutex_t users_table_m;
 extern pthread_mutex_t mysql_mutex;
 
-void err_func(char *msg);
 //billing.cc
 void *userconnectlistener(void *threadid);
 //netflow.cc
 void *netflowlistener(void *threadid);
 //mysql.cc
 void *statsupdater(void *threadid);
+MYSQL *connectdb();
 //misc.cc
 void *dropUser(void * userstr);
 int disconnect_user (user * drophim);
-//daemonize.cc
-int daemonize(void);
-
 int verbose_mutex_lock(pthread_mutex_t *mutex);
 int verbose_mutex_unlock(pthread_mutex_t *mutex);
-
-user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr , uint32_t pstarttime, uint32_t pendtime);
-uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask);
-user_zone *getflowzone(user * curr_user, uint32_t dst_ip);
-MYSQL *connectdb();
-
 char *ipFromIntToStr(uint32_t ip);
 user *onUserConnected(char *session_id);
 void onUserDisconnected(char *session_id);
 void makeDBready();
 void removeUser(user * current_u);
+void logmsg ( uint8_t flags, char* message, ...);
+user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr , uint32_t pstarttime, uint32_t pendtime);
+uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask);
+user_zone *getflowzone(user * curr_user, uint32_t dst_ip);
+//daemonize.cc
+int daemonize(void);
+
 
 #endif				/* _BILLING_H */

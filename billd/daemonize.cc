@@ -31,28 +31,6 @@ static int errFd = -1;
                              Private Functions
 \*---------------------------------------------------------------------------*/
 
-static void die(const char *format,...)
-{
-	va_list ap;
-
-	va_start(ap, format);
-	vfprintf(stderr, format, ap);
-	va_end(ap);
-
-	exit(1);
-}
-
-static void verbose(const char *format,...)
-{
-	va_list ap;
-
-	if (cfg.verbose_daemonize) {
-		va_start(ap, format);
-		vfprintf(stdout, format, ap);
-		va_end(ap);
-	}
-}
-
 int switchUser(const char *userName,
 	   const char *pidFile,
 	   uid_t uid)
@@ -60,13 +38,13 @@ int switchUser(const char *userName,
 	struct passwd *pw;
 
 	if (uid != 0) {
-		cout << "Must be root to specify a different user." << endl;
+		logmsg(DBG_ALWAYS,"Must be root to specify a different user.");
 	} else {
 		if ((pw = getpwnam(userName)) == NULL)
 			return 1;
 		if (pidFile != NULL) {
 			if (chown(pidFile, pw->pw_uid, pw->pw_gid) == -1) {
-				return 2;			
+				return 2;
 			}
 		}
 		if (setgid(pw->pw_gid) != 0)
@@ -84,16 +62,16 @@ int switchUser(const char *userName,
 	return 0;
 }
 
-static int 
+static int
 open_output_file(const char *path)
 {
 	int flags = O_CREAT | O_WRONLY;
 
 	if (cfg.appendlogs) {
-		verbose("Appending to %s\n", path);
+		logmsg(DBG_DAEMON,"Appending to %s\n", path);
 		flags |= O_APPEND;
 	} else {
-		verbose("Overwriting %s\n", path);
+		logmsg(DBG_DAEMON,"Overwriting %s\n", path);
 		flags |= O_TRUNC;
 	}
 
@@ -123,7 +101,7 @@ int open_output_files()
 	return 0;
 }
 
-static int 
+static int
 redirect_stdout_stderr()
 {
 	int rc = 0;
@@ -146,7 +124,7 @@ redirect_stdout_stderr()
                                Main Program
 \*---------------------------------------------------------------------------*/
 
-int 
+int
 daemonize(void)
 {
 	uid_t uid = getuid();
@@ -154,20 +132,22 @@ daemonize(void)
 	int noclose = 0;
 	int lockFD;
 
-	if (geteuid() != uid)
-		die("This executable is too dangerous to be setuid.\n");
+	if (geteuid() != uid){
+		logmsg(DBG_DAEMON,"This executable is too dangerous to be setuid.\n");
+		exit(1);
+	};
 
 	if (cfg.lockfile.length() > 0) {
 		lockFD = open(cfg.lockfile.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
 		if (lockFD < 0)
-			return 1;			
+			return 1;
 		if (flock(lockFD, LOCK_EX | LOCK_NB) != 0)
 			return 2;
 	}
 	if (cfg.pidfile.length() > 0) {
-		verbose("Opening PID file \"%s\".\n", cfg.pidfile.c_str());
+		logmsg(DBG_DAEMON,"Opening PID file \"%s\".\n", cfg.pidfile.c_str());
 		if ((fPid = fopen(cfg.pidfile.c_str(), "w")) == NULL) {
-			return 3;			
+			return 3;
 		}
 	}
 	open_output_files();
@@ -176,9 +156,9 @@ daemonize(void)
 		switchUser(cfg.user.c_str(), cfg.pidfile.c_str(), uid);
 
 	if (chdir(cfg.workingdir.c_str()) != 0) {
-		return 4;		
+		return 4;
 	}
-	verbose("Daemonizing...");
+	logmsg(DBG_DAEMON,"Daemonizing...");
 
 	if (redirect_stdout_stderr())
 		noclose = 1;
