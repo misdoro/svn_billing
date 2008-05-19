@@ -68,8 +68,7 @@ int verbose_mutex_unlock(pthread_mutex_t *mutex){
 //shift given ip number by mask bits:
 uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask)
 {
-	//if (mask == 0)
-	//	return 0;
+	if (mask == 0) return 0;
 	return unmasked_ip >> (32 - mask);
 }
 
@@ -78,13 +77,16 @@ user_zone * getflowzone(user * curr_user, uint32_t dst_ip)
 {
 	uint32_t dst_ip_masked;
 	uint32_t zone_ip_masked;
+	uint32_t sc=0;
 	for (user_zone * p = curr_user->first_user_zone; (p != NULL); p = p->next) {
 		dst_ip_masked = mask_ip(dst_ip, p->zone_mask);
 		zone_ip_masked = mask_ip(p->zone_ip, p->zone_mask);
 		if (dst_ip_masked == zone_ip_masked) {
 			return p;
 		}
+		sc++;
 	}
+	logmsg(DBG_NETFLOW," zone not found for user %i (ip %s) in %i steps :( ",curr_user->id,ipFromIntToStr(dst_ip),sc);
 	return NULL;
 }
 
