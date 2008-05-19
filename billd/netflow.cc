@@ -105,16 +105,16 @@ void * netflowlistener(void *threadid)
 		else
 		{
 
-			logmsg(DBG_NETFLOW,"received datagram!\n");
+			logmsg(DBG_NETFLOW,"received datagram!");
 			//Fill in packet data
 			// Protocol version
-			logmsg(DBG_NETFLOW,"Protocol version: %i\n", packet->pver);
+			logmsg(DBG_NETFLOW,"Protocol version: %u", packet->pver);
 			//Number of flows:
-			logmsg(DBG_NETFLOW,"Number of flows: %i\n", packet->nflows);
+			logmsg(DBG_NETFLOW,"Number of flows: %u", packet->nflows);
 			//NAS uptime:
-			logmsg(DBG_NETFLOW,"NAS uptime: %i\n", packet->uptime);
+			logmsg(DBG_NETFLOW,"NAS uptime: %u", packet->uptime);
 			//flow_sequence
-			logmsg(DBG_NETFLOW,"First flow sequence: %i\n", packet->seq);
+			logmsg(DBG_NETFLOW,"First flow sequence: %u", packet->seq);
 			//Fill in packet data
 			for (n = 0; n < packet->nflows; n++) {
 				fillflow(&(records[n]), buf + 24 + n * 48);
@@ -123,7 +123,7 @@ void * netflowlistener(void *threadid)
 				verbose_mutex_unlock(&users_table_m);//Unlock them when done
 
 				if (currentuser != NULL) {
-					logmsg(DBG_NETFLOW,"Got user %i\n",currentuser->session_id);
+					logmsg(DBG_NETFLOW,"Got user %i",currentuser->session_id);
 					verbose_mutex_lock(&(currentuser->user_mutex));
 					//Get flow direction(0->out, 1->in)
 					dst_ip = (records[n].srcaddr == currentuser->user_ip ? records[n].dstaddr : records[n].srcaddr);
@@ -144,17 +144,13 @@ void * netflowlistener(void *threadid)
 							currentzone->group_ref->group_changed = 1;
 							currentzone->zone_in_bytes += records[n].bytecount;
 						}
-						logmsg(DBG_NETFLOW,"Record %i: session %i, in: %lu, out: %lu\n",packet->seq+n,currentuser->session_id,currentzone->group_ref->in_bytes,currentzone->group_ref->out_bytes);
+						logmsg(DBG_NETFLOW,"Record %i: session %i, in: %lu, out: %lu",packet->seq+n,currentuser->session_id,currentzone->group_ref->in_bytes,currentzone->group_ref->out_bytes);
 					} else {
-						logmsg(DBG_NETFLOW,"Warning! Zone not found! (uid: %u, srcaddr: %u, dscaddr %u)\n", currentuser->id, records[n].srcaddr, records[n].dstaddr);
+						logmsg(DBG_NETFLOW,"Warning! Zone not found! (uid: %u, srcaddr: %s, dstaddr %s)", currentuser->id, ipFromIntToStr(records[n].srcaddr), ipFromIntToStr(records[n].dstaddr));
 					};
 					verbose_mutex_unlock(&(currentuser->user_mutex));
 				} else {
-					char *src = ipFromIntToStr(records[n].srcaddr);
-					char *dst = ipFromIntToStr(records[n].dstaddr);
-					logmsg(DBG_NETFLOW,"Warning! User not found (srcaddr: %s, dstaddr %s)\n", src, dst);
-					delete src;
-					delete dst;
+					logmsg(DBG_NETFLOW,"Warning! User not found (srcaddr: %s, dstaddr %s)", ipFromIntToStr(records[n].srcaddr), ipFromIntToStr(records[n].dstaddr));
 				};
 			};
 		};
