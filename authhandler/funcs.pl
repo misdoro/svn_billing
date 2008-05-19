@@ -2,7 +2,7 @@
 #
 #Read config variables into a hash:
 #
-$config = '/usr/local/billing/billd.conf' if length($config)==0;
+$config = '/etc/billd.conf' if length($config)==0;
 $conf_hash = undef;
 
 open(CONF,'<',$config);
