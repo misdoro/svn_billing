@@ -1,5 +1,5 @@
 <?
-$mysql_host='192.168.64.252';
+$mysql_host='127.0.0.1';
 $mysql_port=3306;
 $mysql_user='billing';
 $mysql_password='billadm';
@@ -15,7 +15,7 @@ $ldap_searchbase='ou=users,dc=openlan,dc=nnov,dc=ru';
 session_start();
 
 $admin_users=array('misdoro');
-$cash_admins=array('misdoro');
+$cash_admins=array('misdoro','flexx');
 
 $config_set=true;
 
