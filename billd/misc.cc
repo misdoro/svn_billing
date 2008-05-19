@@ -1,5 +1,6 @@
 #include "billing.h"
 
+
 pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void logmsg ( uint8_t flags, char* message, ...)
@@ -22,7 +23,7 @@ void logmsg ( uint8_t flags, char* message, ...)
 		va_list args;
 		va_start (args, message);
 		vprintf (message, args);
-		if (errno){
+		if (errno && errno!= EAGAIN){
 			cout << " " << strerror(errno);
 			errno=0;
 		};
@@ -32,6 +33,7 @@ void logmsg ( uint8_t flags, char* message, ...)
 		errno=0;
 	};
 }
+
 
 // Get pointer to packet owner user:
 user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr, uint32_t pstarttime, uint32_t pendtime)
@@ -149,6 +151,13 @@ char *ipFromIntToStr(uint32_t ip)
 	char *myaddr = new char[strlen(addr) + 1];
 	strcpy(myaddr, addr);
 	return myaddr;
+}
+
+uint32_t ipFromStrToInt(const char *ipstr)
+{
+	in_addr a;
+	inet_aton(ipstr,&a);
+	return ntohl(a.s_addr);
 }
 
 void makeDBready()

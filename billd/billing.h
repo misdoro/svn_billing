@@ -133,6 +133,9 @@ typedef struct configuration {
 	uint32_t events_listen_addr;
 	uint16_t events_source_port;
 	uint32_t events_source_addr;
+	uint16_t events_timeout;
+	uint16_t events_threads;
+	struct sockaddr_in events_addr;
 	//Here we connect to drop users
 	uint16_t mpd_shell_port;
 	string mpd_shell_addr;
@@ -180,7 +183,7 @@ extern configuration cfg;
 extern pthread_mutex_t users_table_m;
 extern pthread_mutex_t mysql_mutex;
 
-//billing.cc
+//userconnect.cc
 void *userconnectlistener(void *threadid);
 //netflow.cc
 void *netflowlistener(void *threadid);
@@ -193,6 +196,7 @@ int disconnect_user (user * drophim);
 int verbose_mutex_lock(pthread_mutex_t *mutex);
 int verbose_mutex_unlock(pthread_mutex_t *mutex);
 char *ipFromIntToStr(uint32_t ip);
+uint32_t ipFromStrToInt(const char *ipstr);
 user *onUserConnected(char *session_id);
 void onUserDisconnected(char *session_id);
 void makeDBready();

@@ -29,7 +29,15 @@ int main(int argc, char** argv) {
 	cfg.stayalive=true;
 	config.readInto( cfg.netflow_listen_port, "billd_netflow_port" );//Port to listen for netflow data
 	config.readInto( cfg.netflow_timeout, "billd_netflow_timeout",(uint16_t) 5);
-	config.readInto( cfg.events_listen_port, "billd_events_port");//Port to listen for events
+	//Host and port for events
+	string ela;
+	config.readInto( ela, "billd_events_addr", string("127.0.0.1") );
+	cfg.events_listen_addr=ipFromStrToInt(ela.c_str());
+	config.readInto( cfg.events_listen_port, "billd_events_port", (uint16_t) 10203);
+	config.readInto( cfg.events_threads, "billd_events_threads", (uint16_t) 5);
+	//config.readInto( cfg.events_threads_min, "billd_events_minthreads", (uint16_t) 5);
+	config.readInto( cfg.events_timeout, "billd_events_timeout", (uint16_t) 1);
+
 	config.readInto( cfg.mysql_server,	"billd_mysql_host",	string("127.0.0.1"));
 	config.readInto( cfg.mysql_port,	"billd_mysql_port",	(uint16_t) 3306);
 	config.readInto( cfg.mysql_database,	"billd_mysql_database",	string("billing"));
