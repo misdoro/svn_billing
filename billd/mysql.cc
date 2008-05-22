@@ -15,7 +15,7 @@ MYSQL * connectdb () {
 }
 
 void * statsupdater(void *threadid) {
-	logmsg(DBG_OFFLOAD,"started stats offloading thread");
+	logmsg(DBG_THREADS,"started stats offloading thread");
 	// update values in database
 	while (cfg.stayalive) {
 		if ((time(NULL) - cfg.stats_updated_time) > cfg.stats_update_interval) {
@@ -100,5 +100,6 @@ void * statsupdater(void *threadid) {
 		verbose_mutex_unlock (&users_table_m);
 		sleep(1);
 	}
+	logmsg(DBG_THREADS,"Finished stats offloading thread");
 	pthread_exit(NULL);
 }

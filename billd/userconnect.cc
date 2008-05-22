@@ -53,10 +53,6 @@ void datahandler(int connectSocket){
 	close(connectSocket);
 	if (buffer != NULL) {
 		//Received data to buffer
-		//Data format:
-		//[connect|disconnect] username sessionid ppp_peer_ip linkname
-		//
-		//
 		buffer = (char*) realloc(buffer, recivied + 1);
 		char null = '\0';
 		memcpy(buffer+recivied, &null, 1);
@@ -128,6 +124,7 @@ void datahandler(int connectSocket){
 }
 
 void* ucsconn_handler ( void* ps ) {
+	logmsg(DBG_THREADS,"ucsconn_handler started");
 	int sc = *(int*)ps;
 	int rs;
 	struct sockaddr_in client;
@@ -144,17 +141,14 @@ void* ucsconn_handler ( void* ps ) {
 			continue;
 		}else datahandler( rs );
 	};
-	/*pthread_mutex_lock( &ucsocket_mutex );
-	ntr++;
-	if ()
 	pthread_cond_signal( &ucsocket_event );
-	pthread_mutex_unlock( &ucsocket_mutex );
-*/
+
+	logmsg(DBG_THREADS,"ucsconn_handler has quit");
 	pthread_exit (NULL);
 }
 
 void * userconnectlistener (void *threadid) {
-	logmsg(DBG_EVENTS,"In thread: created userconnect thread");
+	logmsg(DBG_THREADS,"userconnectlistener started");
 	int listenSocket;
 	listenSocket = getucsocket();
 
@@ -170,6 +164,7 @@ void * userconnectlistener (void *threadid) {
 		while( ntr <= 0 ) pthread_cond_wait( &ucsocket_event, &ucsocket_mutex );
 		pthread_mutex_unlock( &ucsocket_mutex );
 	};
+	logmsg(DBG_THREADS,"userconnectlistener has quit");
     pthread_exit (NULL);
 };
 

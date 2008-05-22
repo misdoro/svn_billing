@@ -161,6 +161,7 @@ typedef struct configuration {
 	bool debug_netflow;
 	bool debug_offload;
 	bool debug_events;
+	bool debug_threads;
 	bool verbose_daemonize;
 	bool do_fork;
 	bool appendlogs;
@@ -176,6 +177,7 @@ typedef struct configuration {
 #define DBG_OFFLOAD 4
 #define DBG_EVENTS 8
 #define DBG_DAEMON 16
+#define DBG_THREADS	32
 #define DBG_ALWAYS 128
 
 extern user *firstuser;

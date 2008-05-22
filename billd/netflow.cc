@@ -61,6 +61,7 @@ void fillflow(flowrecord * rec, char *buf)
 
 void * netflowlistener(void *threadid)
 {
+	logmsg(DBG_THREADS,"netflow thread started");
 	int *tid;
 	tid = (int *)threadid;
 	int sock, length, n;
@@ -157,5 +158,6 @@ void * netflowlistener(void *threadid)
 	};
 	delete packet;
 	delete records;
+	logmsg(DBG_THREADS,"netflow thread finished");
 	pthread_exit(NULL);
 }

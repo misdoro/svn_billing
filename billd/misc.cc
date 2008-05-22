@@ -10,6 +10,7 @@ void logmsg ( uint8_t flags, char* message, ...)
 		(flags & DBG_NETFLOW && cfg.debug_netflow) ||
 		(flags & DBG_OFFLOAD && cfg.debug_offload) ||
 		(flags & DBG_DAEMON && cfg.verbose_daemonize) ||
+		(flags & DBG_THREADS && cfg.debug_threads) ||
 		(flags & DBG_ALWAYS))
 	{
 		pthread_mutex_lock(&log_mutex);
