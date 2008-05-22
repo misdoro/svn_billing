@@ -18,7 +18,7 @@ user * firstuser;
 struct configuration cfg;
 
 // need to close all files, kill threads e.t.c.
-void mysigterm (int sig) {
+void end_me (int sig) {
 	logmsg(DBG_ALWAYS,"Terminating application...\n");
 	cfg.stayalive=false;
 }
@@ -48,6 +48,7 @@ int main(int argc, char** argv) {
 	config.readInto( cfg.debug_netflow,	"billd_debug_netflow", 	false);
 	config.readInto( cfg.debug_offload,	"billd_debug_offload", 	false);
 	config.readInto( cfg.debug_events,	"billd_debug_events",	false);
+	config.readInto( cfg.debug_threads, "billd_debug_threads",	false);
 	config.readInto( cfg.log_date,	"billd_log_date",	true);
 	config.readInto( cfg.verbose_daemonize,	"billd_debug_daemonize",false);
 	config.readInto( cfg.do_fork,		"billd_daemon_mode",	true);
@@ -73,7 +74,8 @@ int main(int argc, char** argv) {
 		daemonize();
 	};
 
-	signal(SIGTERM, mysigterm);
+	signal(SIGTERM, end_me);
+	signal(SIGINT, end_me);
 	signal(SIGPIPE, SIG_IGN);
 // here - connect to mysql, read usertables, zones
 //
