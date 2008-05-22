@@ -78,7 +78,7 @@ void * statsupdater(void *threadid) {
 					disconnect_user(u);
 				};
 				mysql_free_result(result);
-				verbose_mutex_lock (&mysql_mutex);
+				verbose_mutex_unlock (&mysql_mutex);
 				verbose_mutex_lock (&users_table_m);
 			}
 			verbose_mutex_unlock (&users_table_m);
