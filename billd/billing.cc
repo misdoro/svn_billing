@@ -102,7 +102,9 @@ int main(int argc, char** argv) {
 		exit(-1);
 	};
 	if (cfg.do_fork) fflush(stdout);
+
 	while (cfg.stayalive) sleep(1);
+	logmsg(DBG_THREADS,"Main thread prepares to quit");
 	sleep(3);
 	if (cfg.do_fork) fclose(stdout);
 	pthread_exit(NULL);
