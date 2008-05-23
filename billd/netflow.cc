@@ -88,6 +88,7 @@ void * netflowlistener(void *threadid)
 	user *currentuser;
 	uint8_t flow_direction;
 	uint32_t dst_ip;
+	uint16_t dst_port;
 	user_zone *currentzone;
 	if (bind(sock, (struct sockaddr *)&server, length) < 0)
 	logmsg(DBG_NETFLOW,"Error binding netflow socket");
@@ -128,8 +129,9 @@ void * netflowlistener(void *threadid)
 					verbose_mutex_lock(&(currentuser->user_mutex));
 					//Get flow direction(0->out, 1->in)
 					dst_ip = (records[n].srcaddr == currentuser->user_ip ? records[n].dstaddr : records[n].srcaddr);
+					dst_port = (records[n].srcaddr == currentuser->user_ip ? records[n].dstport : records[n].srcport);
 					flow_direction = (records[n].srcaddr == currentuser->user_ip ? 0 : 1);
-					currentzone = getflowzone(currentuser, dst_ip);
+					currentzone = getflowzone(currentuser, dst_ip, dst_port);
 					if (currentzone != NULL) {
 						if (flow_direction == 0)
 						{
