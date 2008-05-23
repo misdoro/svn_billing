@@ -74,7 +74,7 @@ uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask)
 }
 
 //Get pointer to matching zone:
-user_zone * getflowzone(user * curr_user, uint32_t dst_ip)
+user_zone * getflowzone(user * curr_user, uint32_t dst_ip,uint16_t dst_port)
 {
 	uint32_t dst_ip_masked;
 	uint32_t zone_ip_masked;
@@ -82,7 +82,9 @@ user_zone * getflowzone(user * curr_user, uint32_t dst_ip)
 	for (user_zone * p = curr_user->first_user_zone; (p != NULL); p = p->next) {
 		dst_ip_masked = mask_ip(dst_ip, p->zone_mask);
 		zone_ip_masked = mask_ip(p->zone_ip, p->zone_mask);
-		if (dst_ip_masked == zone_ip_masked) {
+		if ((dst_ip_masked == zone_ip_masked) && ((p->zone_dstport==0)||(p->zone_dstport==dst_port))) {
+			logmsg(DBG_NETFLOW,"Found zone (%i) for user %i (ip %s, port %i) in %i steps :( ",
+			p->zone_dstport,curr_user->id,ipFromIntToStr(dst_ip),dst_port,sc);
 			return p;
 		}
 		sc++;

@@ -90,15 +90,15 @@ typedef struct zone_group {
 };
 
 typedef struct user_zone {
-        user_zone *next;
+	user_zone *next;
 	zone_group *group_ref;
-        uint32_t id;
-//        uint32_t zone_group_id;
-        uint32_t zone_ip;
-        uint8_t zone_mask;
-        uint16_t zone_dstport;
-        uint64_t zone_in_bytes;
-        uint64_t zone_out_bytes;
+	uint32_t id;
+//	uint32_t zone_group_id;
+	uint32_t zone_ip;
+	uint8_t zone_mask;
+	uint16_t zone_dstport;
+	uint64_t zone_in_bytes;
+	uint64_t zone_out_bytes;
 };
 
 typedef struct user {
@@ -206,7 +206,7 @@ void removeUser(user * current_u);
 void logmsg ( uint8_t flags, char* message, ...);
 user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr , uint32_t pstarttime, uint32_t pendtime);
 uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask);
-user_zone *getflowzone(user * curr_user, uint32_t dst_ip);
+user_zone * getflowzone(user * curr_user, uint32_t dst_ip,uint16_t dst_port);
 //daemonize.cc
 int daemonize(void);
 
