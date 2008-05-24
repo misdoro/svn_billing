@@ -147,9 +147,6 @@ typedef struct configuration {
 	string mysql_username;
 	string mysql_password;
 	string mysql_database;
-	MYSQL *myconn;
-	uint32_t mysql_connect_time;
-	uint32_t mysql_reconnect_interval;
 	//terminate application
 	bool stayalive;
 	//put stats into DB
@@ -199,9 +196,8 @@ int verbose_mutex_lock(pthread_mutex_t *mutex);
 int verbose_mutex_unlock(pthread_mutex_t *mutex);
 char *ipFromIntToStr(uint32_t ip);
 uint32_t ipFromStrToInt(const char *ipstr);
-user *onUserConnected(char *session_id);
+user *onUserConnected(char *session_id, MYSQL *link);
 void onUserDisconnected(char *session_id);
-void makeDBready();
 void removeUser(user * current_u);
 void logmsg ( uint8_t flags, char* message, ...);
 user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr , uint32_t pstarttime, uint32_t pendtime);
