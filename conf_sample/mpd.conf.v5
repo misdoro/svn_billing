@@ -1,0 +1,90 @@
+startup:
+	# configure mpd users
+	set user foo bar admin
+	set user foo1 bar1
+	# configure the console
+	set console self 127.0.0.1 5005
+	set console open
+	# configure the web server
+	set web self 0.0.0.0 5006
+	set web open
+	set ippool add sat  192.168.6.1	192.168.6.255
+        set ippool add full 192.168.7.1 192.168.7.255
+        set ippool add ixnn 192.168.8.1 192.168.8.255
+        set netflow peer 192.168.64.252 12345
+        set netflow self 192.168.64.252 32345
+        set netflow timeouts 10 10
+
+default:
+	load pptp_server
+#	load pppoe_server
+
+
+pptp_server:
+	create bundle template pptp_b
+	set iface enable netflow-in
+	set iface enable netflow-out	
+	set iface enable tcpmssfix
+	set ipcp yes vjcomp
+
+
+	set ipcp ranges 192.168.5.1/32 ippool full
+	set ipcp dns 192.168.64.254 192.168.64.252
+
+	set bundle enable compression
+	set ccp yes mppc
+	set mppc yes e40
+	set mppc yes e128
+	set mppc yes stateless
+
+	create link template pptp_link pptp
+
+	set link action bundle pptp_b
+
+	set link enable multilink
+	set link yes acfcomp protocomp
+	set link no pap chap
+	set link enable chap
+
+	set link keep-alive 10 60
+
+	set link mtu 1460
+
+        set pptp self 192.168.64.252
+
+        set link enable incoming
+	
+	set auth enable radius-auth 
+	set auth enable radius-acct 
+        set radius enable report-mac
+        set radius me 127.0.0.1
+        set radius retries 3
+        set radius timeout 10
+        set radius server 127.0.0.1 testing123
+
+#	set auth extauth-script /usr/local/billing/authhandler/auth.pl
+#	set auth enable ext-auth
+#	set auth extacct-script /usr/local/billing/authhandler/acct.pl
+#	set auth enable ext-acct
+
+pppoe_server:
+
+	create bundle template pppoe_b
+
+	set ipcp ranges 192.168.5.1 ippool ixnn_only
+
+	create link template common pppoe
+
+	set link enable multilink
+
+	set link action bundle pppoe_b
+
+	set link disable chap pap eap
+	set link enable pap
+
+	set pppoe service "openlan"
+
+	create link template rl0 common
+	set link max-children 1000
+	set pppoe iface rl0
+	set link enable incoming
