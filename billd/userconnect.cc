@@ -35,7 +35,7 @@ int getucsocket( void ) {
 	return listensocket;
 };
 
-void datahandler(int connectSocket){
+void datahandler(int connectSocket, MYSQL * mysqllink){
 	//Read data from connection, handle connecting and disconnecting users:
 	int recivied = 0, rsize = 0;
 	char * buffer = NULL;
@@ -103,7 +103,7 @@ void datahandler(int connectSocket){
 						step++;
 						logmsg(DBG_EVENTS,"Username: '%s' User ip: '%s' Session id: '%s' Link name: '%s'", user_name, user_ip, session_id, link_name);
 						if (conn_mode == CONNECT) {
-							onUserConnected(session_id);
+							onUserConnected(session_id,mysqllink);
 						}
 						if (conn_mode == DISCONNECT) {
 							onUserDisconnected(session_id);
@@ -132,6 +132,7 @@ void* ucsconn_handler ( void* ps ) {
 	fromlen=sizeof(client);
 
 	sched_yield();
+	MYSQL *my_link = connectdb();
 
 	while (cfg.stayalive){
 		rs = accept( sc, (struct sockaddr *) &client, &fromlen );
@@ -139,11 +140,16 @@ void* ucsconn_handler ( void* ps ) {
 		else if (rs<0 &&	errno==EAGAIN ){	//Recvfrom exited by timeout, necessary to exit properly
 			logmsg(DBG_EVENTS,"Accept timeout, nothing special");
 			continue;
-		}else datahandler( rs );
+		}else datahandler( rs, my_link );
 	};
+	verbose_mutex_lock( &ucsocket_mutex );
+	ntr++;
 	pthread_cond_signal( &ucsocket_event );
+	pthread_mutex_unlock( &ucsocket_mutex );
 
 	logmsg(DBG_THREADS,"ucsconn_handler has quit");
+	mysql_thread_end();
+	mysql_close(my_link);
 	pthread_exit (NULL);
 }
 

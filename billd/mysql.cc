@@ -8,31 +8,26 @@ MYSQL * connectdb () {
 					cfg.mysql_password.c_str(),
 					cfg.mysql_database.c_str(),
 					cfg.mysql_port, NULL, 0);
-	cfg.myconn = lnk;
-	//Save connect time, then reconnect every reconnect_interval seconds
-	cfg.mysql_connect_time=time(NULL);
+	//enable auto-reconnect feature
+	my_bool reconnect = 1;
+	mysql_options(lnk, MYSQL_OPT_RECONNECT, &reconnect);
+	logmsg(DBG_ALWAYS,"MySQL is thread-safe: %i",mysql_thread_safe());
 	return lnk;
 }
 
 void * statsupdater(void *threadid) {
 	logmsg(DBG_THREADS,"started stats offloading thread");
+	MYSQL *su_link=connectdb();
 	// update values in database
 	while (cfg.stayalive) {
 		if ((time(NULL) - cfg.stats_updated_time) > cfg.stats_update_interval) {
 			logmsg(DBG_OFFLOAD,"Updating stats in MySql...");
-			if ((cfg.mysql_connect_time+cfg.mysql_reconnect_interval) <= time(NULL) ){
-				verbose_mutex_lock (&mysql_mutex);
-				mysql_close(cfg.myconn);
-				cfg.myconn=connectdb();
-				verbose_mutex_unlock (&mysql_mutex);
-			};
-			cfg.stats_updated_time = time(NULL);
 			verbose_mutex_lock (&users_table_m);
 			for (user * u = firstuser; u != NULL; u = u->next) {
-				logmsg(DBG_OFFLOAD,"Session %s:",u->verbose_session_id.c_str());
-				zone_group * p = u->first_zone_group;
 				verbose_mutex_unlock (&users_table_m);
 				verbose_mutex_lock (&(u->user_mutex));
+				logmsg(DBG_OFFLOAD,"Session %s:",u->verbose_session_id.c_str());
+				zone_group * p = u->first_zone_group;
 				double charged_money=0;
 				//Save stat record for each of user's groups:
 				while (p != NULL){
@@ -42,9 +37,7 @@ void * statsupdater(void *threadid) {
 						double money = (double) p->in_diff * p->zone_mb_cost / (double) MB_LENGTH;
 						charged_money += money;
 						sprintf(sql, "insert into session_statistics (zone_group_id,session_id,traf_in,traf_out,traf_in_money) values (%i,%i,%lu,%lu,%f);",p->id,u->session_id,p->in_diff,p->out_diff,money);
-						verbose_mutex_lock (&mysql_mutex);
-						mysql_query(cfg.myconn, sql);
-						verbose_mutex_unlock (&mysql_mutex);
+						mysql_query(su_link, sql);
 						logmsg(DBG_OFFLOAD,"%s",sql);
 						delete sql;
 						p->in_diff=0;
@@ -57,9 +50,7 @@ void * statsupdater(void *threadid) {
 				if ( charged_money>0 ) {
 					char * sql = new char[1024];
 					sprintf(sql, "UPDATE users SET debit=debit-%f WHERE id=%u", charged_money,u->id); /*Its better to update debit this way IMHO*/
-					verbose_mutex_lock (&mysql_mutex);
-					mysql_query(cfg.myconn, sql);
-					verbose_mutex_unlock (&mysql_mutex);
+					mysql_query(su_link, sql);
 					logmsg(DBG_OFFLOAD,"%s",sql);
 					delete sql;
 				}
@@ -68,17 +59,15 @@ void * statsupdater(void *threadid) {
 				char * sql = new char[1024];
 				sprintf(sql, "SELECT users.debit+users.credit from users where users.id=%i", u->id);
 				verbose_mutex_unlock (&(u->user_mutex));
-				verbose_mutex_lock (&mysql_mutex);
-				mysql_query(cfg.myconn, sql);
+				mysql_query(su_link, sql);
 				delete sql;
-				result = mysql_store_result(cfg.myconn);
+				result = mysql_store_result(su_link);
 				MYSQL_ROW row = mysql_fetch_row(result);
 				//Disconnect user if he has not enough money!
 				if (atof(row[0])<0){
 					disconnect_user(u);
 				};
 				mysql_free_result(result);
-				verbose_mutex_unlock (&mysql_mutex);
 				verbose_mutex_lock (&users_table_m);
 			}
 			verbose_mutex_unlock (&users_table_m);
@@ -100,6 +89,9 @@ void * statsupdater(void *threadid) {
 		verbose_mutex_unlock (&users_table_m);
 		sleep(1);
 	}
-	logmsg(DBG_THREADS,"Finished stats offloading thread");
+	logmsg(DBG_THREADS,"Finishing stats offloading thread");
+	mysql_close(su_link);
+	mysql_thread_end();
+	logmsg(DBG_THREADS,"Complete stats offloading thread");
 	pthread_exit(NULL);
 }

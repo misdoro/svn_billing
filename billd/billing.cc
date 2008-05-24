@@ -9,7 +9,7 @@ using namespace std;
 
 //Define mutexes:
 pthread_mutex_t users_table_m = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mysql_mutex = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_t mysql_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //Define global variables:
 user * firstuser;
@@ -19,15 +19,21 @@ struct configuration cfg;
 
 // need to close all files, kill threads e.t.c.
 void end_me (int sig) {
-	logmsg(DBG_ALWAYS,"Terminating application...\n");
+	logmsg(DBG_ALWAYS,"Terminating application...");
 	cfg.stayalive=false;
+	logmsg(DBG_ALWAYS,"Please wait 30 seconds");
 }
 
 int main(int argc, char** argv) {
 // here - read configuration from /etc/billd.conf
 	ConfigFile config( "/etc/billd.conf" );
 	cfg.stayalive=true;
+	//NetFlow sink port and address:
 	config.readInto( cfg.netflow_listen_port, "billd_netflow_port" );//Port to listen for netflow data
+	string nla;
+	config.readInto( nla, "billd_netflow_addr", string("127.0.0.1") );
+	cfg.netflow_listen_addr=ipFromStrToInt(nla.c_str());
+	//Netflow socket timeout
 	config.readInto( cfg.netflow_timeout, "billd_netflow_timeout",(uint16_t) 5);
 	//Host and port for events
 	string ela;
@@ -43,7 +49,6 @@ int main(int argc, char** argv) {
 	config.readInto( cfg.mysql_database,	"billd_mysql_database",	string("billing"));
 	config.readInto( cfg.mysql_username,	"billd_mysql_username",	string(""));
 	config.readInto( cfg.mysql_password,	"billd_mysql_password",	string(""));
-	config.readInto( cfg.mysql_reconnect_interval, "billd_mysql_reconnect_interval", (uint32_t) 3600);
 	config.readInto( cfg.debug_locks,	"billd_debug_locks", 	false);
 	config.readInto( cfg.debug_netflow,	"billd_debug_netflow", 	false);
 	config.readInto( cfg.debug_offload,	"billd_debug_offload", 	false);
@@ -64,9 +69,11 @@ int main(int argc, char** argv) {
 	config.readInto( cfg.workingdir,	"billd_working_dir",	string("/"));
 	config.readInto( cfg.stats_update_interval, "billd_stats_update_interval", (uint32_t) 25);
 	config.readInto( cfg.die_time_interval, "billd_user_grace_time", (uint32_t) 30);
-	if (connectdb() == NULL) {
+	/*if ((cfg.myconn= connectdb()) == NULL) {
 		logmsg(DBG_ALWAYS,"Error. Could not connect to database.\n");
-	}
+	}*/
+	//Init MySQL library:
+	my_init();
 //	makeDBready();
 
 // here - fork application if configuration right
@@ -105,8 +112,11 @@ int main(int argc, char** argv) {
 
 	while (cfg.stayalive) sleep(1);
 	logmsg(DBG_THREADS,"Main thread prepares to quit");
-	sleep(3);
-	if (cfg.do_fork) fclose(stdout);
+	sleep(5);
+	//if (cfg.do_fork) fclose(stdout);
+	mysql_thread_end();
+	mysql_library_end();
+	logmsg(DBG_ALWAYS,"Main thread quits");
 	pthread_exit(NULL);
 }
 

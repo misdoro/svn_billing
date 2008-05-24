@@ -165,28 +165,14 @@ uint32_t ipFromStrToInt(const char *ipstr)
 	return ntohl(a.s_addr);
 }
 
-void makeDBready()
-{
-	/*
-	char *sql;
-	sql = new char[1024];
-	sprintf(sql, "UPDATE statistics SET connected = 0");
-	verbose_mutex_lock (&mysql_mutex);
-	mysql_query(cfg.myconn, sql);
-	verbose_mutex_unlock (&mysql_mutex);
-	delete sql;
-	*/
-}
-
-user *onUserConnected(char *session_id)
+user *onUserConnected(char *session_id, MYSQL * link)
 {
 	char sql[32768];
 	MYSQL_RES *result;
 	//get user info from session:
 	sprintf(sql, "SELECT sessions.user_id, users.debit, users.credit, sessions.ppp_ip, sessions.id, sessions.nas_linkname from sessions,users where sessions.session_id='%s' and sessions.state=2 and users.id=sessions.user_id", session_id);
-	verbose_mutex_lock (&mysql_mutex);
-	mysql_query(cfg.myconn, sql);
-	result = mysql_store_result(cfg.myconn);
+	mysql_query(link,sql);
+	result = mysql_store_result(link);
 	if (mysql_num_rows(result) == 0) {
 		logmsg(DBG_EVENTS,"Warning! Session %s not found or is wrong", session_id);
 		//can't drop user here, sorry. Don't know his NAS and link num
@@ -213,12 +199,11 @@ user *onUserConnected(char *session_id)
 	newuser->user_drop_thread = 0;
 	logmsg(DBG_EVENTS,"User info - id:%s, debit:%s, credit:%s", row[0], row[1], row[2]);
 	mysql_free_result(result);
-	verbose_mutex_unlock (&mysql_mutex);
+	//verbose_mutex_unlock (&mysql_mutex);
 	//get user groups
 	sprintf(sql, "SELECT usergroups.group_id,groupnames.mb_cost FROM usergroups,groupnames WHERE user_id=%i and usergroups.group_id=groupnames.id", newuser->id);
-	verbose_mutex_lock (&mysql_mutex);
-	mysql_query(cfg.myconn, sql);
-	result = mysql_store_result(cfg.myconn);
+	mysql_query(link,sql);
+	result = mysql_store_result(link);
 	if (mysql_num_rows(result) == 0) {
 		logmsg(DBG_EVENTS,"Warning! No groups for user %i found.", newuser->id);
 		//drop user
@@ -248,13 +233,11 @@ user *onUserConnected(char *session_id)
 		logmsg(DBG_EVENTS,"User %i. Group %i", newuser->id, newgroup->id);
 	}
 	mysql_free_result(result);
-	verbose_mutex_unlock (&mysql_mutex);
 
 	//load zones
 	sprintf(sql, "select allzones.id, zone_groups.group_id, allzones.ip, allzones.mask, allzones.dstport, zone_groups.priority from allzones,zone_groups where allzones.id = zone_groups.zone_id and zone_groups.group_id in (select group_id from usergroups where user_id=%i) order by zone_groups.priority DESC;",newuser->id);
-	verbose_mutex_lock (&mysql_mutex);
-	mysql_query(cfg.myconn, sql);
-	result = mysql_store_result(cfg.myconn);
+	mysql_query(link,sql);
+	result = mysql_store_result(link);
 	while ((row = mysql_fetch_row(result)) != NULL) {
 		//create new zone
 		user_zone * newzone = new user_zone;
@@ -281,7 +264,7 @@ user *onUserConnected(char *session_id)
 		}
 	}
 	mysql_free_result(result);
-	verbose_mutex_unlock (&mysql_mutex);
+	//verbose_mutex_unlock (&mysql_mutex);
 	logmsg(DBG_EVENTS,"Zones loaded.");
 	//add user to list
 	verbose_mutex_lock(&users_table_m);
