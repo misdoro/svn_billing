@@ -145,7 +145,7 @@ void* ucsconn_handler ( void* ps ) {
 	verbose_mutex_lock( &ucsocket_mutex );
 	ntr++;
 	pthread_cond_signal( &ucsocket_event );
-	pthread_mutex_unlock( &ucsocket_mutex );
+	verbose_mutex_unlock( &ucsocket_mutex );
 
 	logmsg(DBG_THREADS,"ucsconn_handler has quit");
 	mysql_thread_end();
@@ -165,10 +165,10 @@ void * userconnectlistener (void *threadid) {
 	while( cfg.stayalive ) {
 		if( pthread_create( &threads[ntr], NULL, &ucsconn_handler, &listenSocket ) ) logmsg(DBG_EVENTS,"E:thread create error" );
 		sched_yield();
-		pthread_mutex_lock( &ucsocket_mutex );
+		verbose_mutex_lock( &ucsocket_mutex );
 		ntr--;
 		while( ntr <= 0 ) pthread_cond_wait( &ucsocket_event, &ucsocket_mutex );
-		pthread_mutex_unlock( &ucsocket_mutex );
+		verbose_mutex_unlock( &ucsocket_mutex );
 	};
 	logmsg(DBG_THREADS,"userconnectlistener has quit");
     pthread_exit (NULL);

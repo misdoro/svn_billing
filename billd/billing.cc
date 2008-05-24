@@ -9,7 +9,6 @@ using namespace std;
 
 //Define mutexes:
 pthread_mutex_t users_table_m = PTHREAD_MUTEX_INITIALIZER;
-//pthread_mutex_t mysql_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //Define global variables:
 user * firstuser;

@@ -199,7 +199,6 @@ user *onUserConnected(char *session_id, MYSQL * link)
 	newuser->user_drop_thread = 0;
 	logmsg(DBG_EVENTS,"User info - id:%s, debit:%s, credit:%s", row[0], row[1], row[2]);
 	mysql_free_result(result);
-	//verbose_mutex_unlock (&mysql_mutex);
 	//get user groups
 	sprintf(sql, "SELECT usergroups.group_id,groupnames.mb_cost FROM usergroups,groupnames WHERE user_id=%i and usergroups.group_id=groupnames.id", newuser->id);
 	mysql_query(link,sql);
@@ -264,7 +263,6 @@ user *onUserConnected(char *session_id, MYSQL * link)
 		}
 	}
 	mysql_free_result(result);
-	//verbose_mutex_unlock (&mysql_mutex);
 	logmsg(DBG_EVENTS,"Zones loaded.");
 	//add user to list
 	verbose_mutex_lock(&users_table_m);
