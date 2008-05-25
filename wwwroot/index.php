@@ -1,6 +1,6 @@
 <?
 require ('auth.php');
-require ('mysql.php');
+
 echo '<html><head>';
 echo '<Meta http-equiv="Content-type" content="Text/html;charset=utf-8">';
 echo '<title>Личный кабинет: '.$_SESSION['fullname'].'</title>';
@@ -22,7 +22,8 @@ if ($l){
 echo '<br><a href="stats.php">Статистика интернет</a>';
 if ($_SESSION['is_admin']) echo '<br><a href="admin.php">Админка</a>';
 if ($_SESSION['is_cash_admin']) echo '<br><a href="payment.php">Зачисление платежей</a>';
-echo '<br><a href="index.php?logout=1">Выйти!</a>';
-echo '</body></html>';
-
 ?>
+		<br><a href="packs.php">Управление пакетами</a>
+		<br><a href="index.php?logout=1">Выйти!</a>
+	</body>
+</html>

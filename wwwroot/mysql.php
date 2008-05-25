@@ -10,7 +10,7 @@ if (mysqli_connect_errno()) {
 
 
 /* change character set to utf8 */
-if ($mysqli->set_charset($dbcharset)) {
+if (!$mysqli->set_charset($dbcharset)) {
     //printf("Error loading character set $charset: %s\n", $mysql->error);
 } else {
     //printf("Current character set: %s\n", $mysqli->character_set_name());

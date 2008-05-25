@@ -5,6 +5,11 @@
 if (!isset($config_set)){
 	require('config.php');
 };
+
+if (!isset($mysqli)){
+	require('mysql.php');
+};
+
 if (isset($_GET['logout'])){
 	$_SESSION['username']='';
 	$_SESSION['password']='';
@@ -19,6 +24,7 @@ if (strstr($_SERVER['PHP_SELF'],'auth.php')){
 		$_SESSION['password']=filterit($_POST['password']);
 		$_SESSION['is_admin']=false;
 		$_SESSION['is_cash_admin']=false;
+		$_SESSION['user_id']=0;
 		header('Location: index.php');
 		exit;
 	}else {
@@ -64,6 +70,11 @@ if (strstr($_SERVER['PHP_SELF'],'auth.php')){
 					if (in_array($_SESSION['username'],$cash_admins)){
 						$_SESSION['is_cash_admin']=true;
 					};
+					//get numeric ID from MySQL
+					$query='SELECT id FROM users WHERE login="'.$_SESSION['username'].'"';
+					$res=$mysqli->query($query);
+					$l=$res->fetch_row();
+					$_SESSION['user_id']=$l[0];
 				}else{
 					header('Location: auth.php');
 					exit;
