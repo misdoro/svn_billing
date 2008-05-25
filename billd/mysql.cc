@@ -34,8 +34,17 @@ void * statsupdater(void *threadid) {
 					logmsg(DBG_OFFLOAD,"   group %i: in %lu out %lu ",p->id, p->in_diff,p->out_diff);
 					if (p->group_changed == 1) {
 						char * sql = new char[1024];
-						double money = (double) p->in_diff * p->zone_mb_cost / (double) MB_LENGTH;
-						charged_money += money;
+						//Update according pack, if any
+						sprintf(sql, "UPDATE userpacks SET units_left = units_left - %lu WHERE user_id=%u AND unittype=1 AND date_expire > CURRENT_TIMESTAMP AND unit_zone=%u AND units_left>%lu ORDER BY date_on ASC LIMIT 1",p->in_diff,u->id,p->id,p->in_diff);
+						mysql_query(su_link, sql);
+						logmsg(DBG_OFFLOAD,"%s",sql);
+						double money=0;
+						//If not updated pack, charge some money
+						if (mysql_affected_rows(su_link)!=1){
+							money = (double) p->in_diff * p->zone_mb_cost / (double) MB_LENGTH;
+							charged_money += money;
+						};
+						//Add log record about this zone
 						sprintf(sql, "insert into session_statistics (zone_group_id,session_id,traf_in,traf_out,traf_in_money) values (%i,%i,%lu,%lu,%f);",p->id,u->session_id,p->in_diff,p->out_diff,money);
 						mysql_query(su_link, sql);
 						logmsg(DBG_OFFLOAD,"%s",sql);

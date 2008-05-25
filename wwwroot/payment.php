@@ -1,6 +1,6 @@
 <?
 require ('auth.php');
-require ('mysql.php');
+
 if ($_SESSION['is_admin']!=true){
 	echo '<html><head>';
 	echo '<Meta http-equiv="Content-type" content="Text/html;charset=utf-8">';

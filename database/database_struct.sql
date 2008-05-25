@@ -87,9 +87,10 @@ CREATE TABLE IF NOT EXISTS `session_statistics` (
 	`traf_in_money` double NOT NULL default '0',	/*Let it be double precision*/
 	`stat_time`	timestamp NOT NULL default CURRENT_TIMESTAMP,	/*record date*/
 	`session_id` int unsigned NOT NULL default '0',
-	PRIMARY KEY  (`id`),
-	KEY `user_id` (`user_id`,`zone_group_id`),
-	KEY `session_id` (`session_id`)
+  PRIMARY KEY  (`id`),
+  KEY `user_id` (`zone_group_id`),
+  KEY `session_id` (`session_id`),
+  KEY `timekey` (`stat_time`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 /*
@@ -121,12 +122,14 @@ Packs table:
 */
 CREATE TABLE IF NOT EXISTS `packs` (
 	`id` int unsigned NOT NULL auto_increment,
+	`name` varchar(255) NOT NULL default '',
 	`unittype` tinyint unsigned default '1', /*1 is megabytes, others - for something else*/
 	`unitcount` bigint unsigned NOT NULL default '0',	/*bytes count per-pack*/
 	`unit_zone` int unsigned NOT NULL default '0',	/*If is byte-pack, take only bytes from this zone into account*/
 	`on_price` decimal(11,2) NOT NULL default '0',	/*Amount of money to charge for adding this pack*/
 	`duration` int unsigned NOT NULL default '0',	/*Pack duration in seconds*/
-	`durationtype` tinyint unsigned default '1',	/*Pack duration type: 1 - exactly duration, 2 - until next duration-length standard period, e.g. monday, 1st day of month, etc*/
+	`durationtype` tinyint unsigned default '1',	/*Pack duration units: 1 - exact duration, seconds
+	2 - days, 3 - weeks, 4- months until next duration-length standard period, e.g. monday, 1st day of month, etc*/
 	PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
@@ -134,16 +137,22 @@ CREATE TABLE IF NOT EXISTS `packs` (
 Per-user connected packs
 */
 CREATE TABLE IF NOT EXISTS `userpacks` (
-	`id` int unsigned NOT NULL auto_increment,		/*Record ID*/
-	`user_id` int unsigned NOT NULL default '0',	/*User of this pack*/
-	`pack_id` int unsigned NOT NULL default '0',	/*Pack ID*/
-	`date_on` timestamp NOT NULL default CURRENT_TIMESTAMP, /*Date on*/
-	`units_left` bigint unsigned NOT NULL default '0',	/*units (bytes) left in pack*/
-	PRIMARY KEY  (`id`),
-	key `user_id` (`user_id`),
-	key `pack_id` (`pack_id`),
-	key `date_on` (`date_on`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+  `id` int(10) unsigned NOT NULL auto_increment,
+  `user_id` int(10) unsigned NOT NULL default '0',
+  `pack_id` int(10) unsigned NOT NULL default '0',
+  `date_on` timestamp NOT NULL default CURRENT_TIMESTAMP,
+  `units_left` bigint(20) unsigned NOT NULL default '0',
+  `date_expire` timestamp NOT NULL default '0000-00-00 00:00:00',
+  `unit_zone` int(10) unsigned NOT NULL default '0',
+  `unittype` int(10) unsigned NOT NULL default '0',
+  PRIMARY KEY  (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `pack_id` (`pack_id`),
+  KEY `date_on` (`date_on`),
+  KEY `expires` (`date_expire`),
+  KEY `unit_zone` (`unit_zone`,`unittype`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3 ;
+
 
 /*
 Operations log (all updates and inserts using web-interface)
