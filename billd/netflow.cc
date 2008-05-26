@@ -117,11 +117,17 @@ void * netflowlistener(void *threadid)
 			logmsg(DBG_NETFLOW,"NAS uptime: %u", packet->uptime);
 			//flow_sequence
 			logmsg(DBG_NETFLOW,"First flow sequence: %u", packet->seq);
+			
+			//Calculate NAS start time:
+			uint32_t nasstart=(packet->time - packet->uptime/1000);
 			//Fill in packet data
 			for (n = 0; n < packet->nflows; n++) {
 				fillflow(&(records[n]), buf + 24 + n * 48);
+				uint32_t starttime=records[n].starttime/1000+nasstart;
+				uint32_t endtime=records[n].endtime/1000+nasstart;
 				verbose_mutex_lock(&users_table_m);//Lock all users while searching
-				currentuser = getuserbyip(records[n].srcaddr, records[n].dstaddr,records[n].starttime,records[n].endtime);
+				currentuser = getuserbyip(records[n].srcaddr, records[n].dstaddr, starttime, endtime);
+				logmsg (DBG_NETFLOW,"srcaddr %s, dstaddr %s, starttime %u, endtime %u, time %u",ipFromIntToStr(records[n].srcaddr),ipFromIntToStr(records[n].dstaddr),starttime, endtime, time(NULL));
 				verbose_mutex_unlock(&users_table_m);//Unlock them when done
 
 				if (currentuser != NULL) {

@@ -22,6 +22,7 @@ void * statsupdater(void *threadid) {
 	while (cfg.stayalive) {
 		if ((time(NULL) - cfg.stats_updated_time) > cfg.stats_update_interval) {
 			logmsg(DBG_OFFLOAD,"Updating stats in MySql...");
+			cfg.stats_updated_time=time(NULL);			
 			verbose_mutex_lock (&users_table_m);
 			for (user * u = firstuser; u != NULL; u = u->next) {
 				verbose_mutex_unlock (&users_table_m);

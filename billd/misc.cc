@@ -45,6 +45,7 @@ user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr, uint32_t pstarttime, ui
 		 && (p->die_time==0 || pendtime <= p->die_time)) {
 			return p;
 		}
+		logmsg(DBG_NETFLOW,"I%s sst%u pst%u set%u pet%u", ipFromIntToStr(p->user_ip),p->session_start_time,pstarttime,p->die_time,pendtime);
 	}
 	return NULL;
 }
@@ -193,6 +194,8 @@ user *onUserConnected(char *session_id, MYSQL * link)
 	newuser->first_user_zone = NULL;
 	newuser->first_zone_group = NULL;
 	newuser->debit_changed = 0;
+	newuser->session_start_time = time(NULL);
+	newuser->session_end_time = 0;
 	newuser->die_time = 0;
 	pthread_mutex_t	mutex = PTHREAD_MUTEX_INITIALIZER;
 	newuser->user_mutex = mutex;
@@ -294,6 +297,7 @@ void onUserDisconnected(char *session_id)
 
 	verbose_mutex_lock(&(current_u->user_mutex));
 	current_u->die_time = time(NULL);
+	current_u->session_end_time=time(NULL);
 	verbose_mutex_unlock(&(current_u->user_mutex));
 }
 
