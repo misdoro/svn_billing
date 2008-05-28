@@ -104,6 +104,7 @@ typedef struct user_zone {
 typedef struct user {
 	user *next;
 	uint32_t id;
+	uint32_t bill_id;
 	uint32_t user_ip;
 	//uint32_t user_ip_digit;
 	double user_debit;
