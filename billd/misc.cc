@@ -181,20 +181,19 @@ user *onUserConnected(char *session_id, MYSQL * link)
 		return NULL;
 	}
 	MYSQL_ROW row = mysql_fetch_row(result);
-
 	//create user structure
 	user * newuser = new user;
 	newuser->next = NULL;
 	newuser->id = atoi(row[0]);
-	newuser->bill_id=atoi(row[6]);
-	if (newuser->bill_id == 0)
+	if (row[6]!=NULL && row[7]!=NULL && row[8]!= NULL)
 	{
+		newuser->bill_id=atoi(row[6]);
+		newuser->user_debit = atof(row[7]);
+                newuser->user_credit = atof(row[8]);
+	}else{
 		newuser->bill_id=newuser->id;
 		newuser->user_debit = atof(row[1]);
 		newuser->user_credit = atof(row[2]);
-	}else{
-		newuser->user_debit = atof(row[7]);
-		newuser->user_credit = atof(row[8]);
 	};
 	newuser->user_ip = htonl(inet_addr(row[3]));
 	newuser->session_id = atoi(row[4]);
@@ -209,7 +208,7 @@ user *onUserConnected(char *session_id, MYSQL * link)
 	pthread_mutex_t	mutex = PTHREAD_MUTEX_INITIALIZER;
 	newuser->user_mutex = mutex;
 	newuser->user_drop_thread = 0;
-	logmsg(DBG_EVENTS,"User info - id:%s, debit:%s, credit:%s, parent %s, parent money %s, parent credit %s", row[0], row[1], row[2], row[6], row[7], row[8]);
+	//logmsg(DBG_EVENTS,"User info - id:%s, debit:%s, credit:%s, parent %s, parent money %s, parent credit %s", row[0], row[1], row[2], row[6], row[7], row[8]);
 	mysql_free_result(result);
 	//get user groups
 	sprintf(sql, "SELECT usergroups.group_id,groupnames.mb_cost FROM usergroups,groupnames WHERE user_id=%i and usergroups.group_id=groupnames.id", newuser->id);
