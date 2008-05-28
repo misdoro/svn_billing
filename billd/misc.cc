@@ -172,6 +172,7 @@ user *onUserConnected(char *session_id, MYSQL * link)
 	MYSQL_RES *result;
 	//get user info from session:
 	sprintf(sql, "SELECT sessions.user_id, a.debit, a.credit, sessions.ppp_ip, sessions.id, sessions.nas_linkname, a.parent, b.debit, b.credit from sessions,users as a left join users as b on a.parent=b.id where sessions.session_id='%s' and sessions.state=2 and a.id=sessions.user_id limit 1", session_id);
+	logmsg(DBG_EVENTS,"%s", sql);
 	mysql_query(link,sql);
 	result = mysql_store_result(link);
 	if (mysql_num_rows(result) == 0) {
@@ -208,7 +209,7 @@ user *onUserConnected(char *session_id, MYSQL * link)
 	pthread_mutex_t	mutex = PTHREAD_MUTEX_INITIALIZER;
 	newuser->user_mutex = mutex;
 	newuser->user_drop_thread = 0;
-	logmsg(DBG_EVENTS,"User info - id:%s, debit:%s, credit:%s", row[0], row[1], row[2]);
+	logmsg(DBG_EVENTS,"User info - id:%s, debit:%s, credit:%s, parent %s, parent money %s, parent credit %s", row[0], row[1], row[2], row[6], row[7], row[8]);
 	mysql_free_result(result);
 	//get user groups
 	sprintf(sql, "SELECT usergroups.group_id,groupnames.mb_cost FROM usergroups,groupnames WHERE user_id=%i and usergroups.group_id=groupnames.id", newuser->id);
