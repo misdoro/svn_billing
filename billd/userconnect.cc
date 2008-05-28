@@ -82,7 +82,7 @@ void datahandler(int connectSocket, MYSQL * mysqllink){
 						break;
 					// connect :: username
 					case 1: user_name = new char[strlen(str)+1];
-                                                       strcpy(user_name, str);
+						strcpy(user_name, str);
 						step++;
 					break;
 					// connect :: session_id

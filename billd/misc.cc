@@ -171,7 +171,7 @@ user *onUserConnected(char *session_id, MYSQL * link)
 	char sql[32768];
 	MYSQL_RES *result;
 	//get user info from session:
-	sprintf(sql, "SELECT sessions.user_id, users.debit, users.credit, sessions.ppp_ip, sessions.id, sessions.nas_linkname from sessions,users where sessions.session_id='%s' and sessions.state=2 and users.id=sessions.user_id", session_id);
+	sprintf(sql, "SELECT sessions.user_id, a.debit, a.credit, sessions.ppp_ip, sessions.id, sessions.nas_linkname, a.parent, b.debit, b.credit from sessions,users as a left join users as b on a.parent=b.id where sessions.session_id='%s' and sessions.state=2 and a.id=sessions.user_id limit 1", session_id);
 	mysql_query(link,sql);
 	result = mysql_store_result(link);
 	if (mysql_num_rows(result) == 0) {
@@ -185,8 +185,16 @@ user *onUserConnected(char *session_id, MYSQL * link)
 	user * newuser = new user;
 	newuser->next = NULL;
 	newuser->id = atoi(row[0]);
-	newuser->user_debit = atof(row[1]);
-	newuser->user_credit = atof(row[2]);
+	newuser->bill_id=atoi(row[6]);
+	if (newuser->bill_id == 0)
+	{
+		newuser->bill_id=newuser->id;
+		newuser->user_debit = atof(row[1]);
+		newuser->user_credit = atof(row[2]);
+	}else{
+		newuser->user_debit = atof(row[7]);
+		newuser->user_credit = atof(row[8]);
+	};
 	newuser->user_ip = htonl(inet_addr(row[3]));
 	newuser->session_id = atoi(row[4]);
 	newuser->verbose_session_id = session_id;

@@ -7,9 +7,6 @@ use Net::LDAP;
 use DBI; use DBD::mysql;
 use IO::Socket;
 
-
-
-
 # This is hash wich hold original request from radius
 #my %RAD_REQUEST;
 # In this hash you add values that will be returned to NAS.
@@ -81,17 +78,18 @@ if ($result->entries){
 #Connect to MYSQL
 my $dbh = DBI->connect("DBI:mysql:$db_name:$db_host:$db_port", $db_user, $db_pass);
 
-my ($money,$uin,$ipnum,$is_active)=undef;
+my ($money,$uin,$ipnum,$is_active,$parent,$parent_money)=undef;
 if ($resp == 0) {
 #Check if user has enough money on account:
-	my $query='select debit+credit, id,user_ip,active from users where login=? and active=1;';
+my $query='select a.debit+a.credit, a.id, a.user_ip, a.active, a.parent, b.credit+ b.debit from users as a left join users as b on a.parent = b.id where a.login=? limit 1';
 	my $sth = $dbh->prepare($query);
 	my $rv = $sth->execute($uid) or die "can't execute the query:". $sth->errstr;
-	($money,$uin,$ipnum,$is_active)=$sth->fetchrow_array;
-	if ($money<0) {
+	($money,$uin,$ipnum,$is_active,$parent,$parent_money)=$sth->fetchrow_array;
+	
+	if (($money < 0 && !$parent) || ($parent && $parent_money < 0)) {
 		$resp=1;
 		$RAD_REPLY{'Reply-Message'}='Not enough money on account, sorry :(';
-};
+	};
 	if (!$uin){
 		$resp=1;
 		$RAD_REPLY{'Reply-Message'}='Sorry, user not found in MYSQL database! :(';

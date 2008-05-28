@@ -22,7 +22,7 @@ void * statsupdater(void *threadid) {
 	while (cfg.stayalive) {
 		if ((time(NULL) - cfg.stats_updated_time) > cfg.stats_update_interval) {
 			logmsg(DBG_OFFLOAD,"Updating stats in MySql...");
-			cfg.stats_updated_time=time(NULL);			
+			cfg.stats_updated_time=time(NULL);
 			verbose_mutex_lock (&users_table_m);
 			for (user * u = firstuser; u != NULL; u = u->next) {
 				verbose_mutex_unlock (&users_table_m);
@@ -36,7 +36,7 @@ void * statsupdater(void *threadid) {
 					if (p->group_changed == 1) {
 						char * sql = new char[1024];
 						//Update according pack, if any
-						sprintf(sql, "UPDATE userpacks SET units_left = units_left - %lu WHERE user_id=%u AND unittype=1 AND date_expire > CURRENT_TIMESTAMP AND unit_zone=%u AND units_left>%lu ORDER BY date_on ASC LIMIT 1",p->in_diff,u->id,p->id,p->in_diff);
+						sprintf(sql, "UPDATE userpacks SET units_left = units_left - %lu WHERE user_id=%u AND unittype=1 AND date_expire > CURRENT_TIMESTAMP AND unit_zone=%u AND units_left>%lu ORDER BY date_on ASC LIMIT 1",p->in_diff,u->bill_id,p->id,p->in_diff);
 						mysql_query(su_link, sql);
 						logmsg(DBG_OFFLOAD,"%s",sql);
 						double money=0;
@@ -59,7 +59,7 @@ void * statsupdater(void *threadid) {
 				//Update user's debit:
 				if ( charged_money>0 ) {
 					char * sql = new char[1024];
-					sprintf(sql, "UPDATE users SET debit=debit-%f WHERE id=%u", charged_money,u->id); /*Its better to update debit this way IMHO*/
+					sprintf(sql, "UPDATE users SET debit=debit-%f WHERE id=%u", charged_money,u->bill_id);
 					mysql_query(su_link, sql);
 					logmsg(DBG_OFFLOAD,"%s",sql);
 					delete sql;
@@ -67,7 +67,7 @@ void * statsupdater(void *threadid) {
 				//Check user's debit and drop him if he is out of funds:
 				MYSQL_RES *result;
 				char * sql = new char[1024];
-				sprintf(sql, "SELECT users.debit+users.credit from users where users.id=%i", u->id);
+				sprintf(sql, "SELECT users.debit+users.credit from users where users.id=%i", u->bill_id);
 				verbose_mutex_unlock (&(u->user_mutex));
 				mysql_query(su_link, sql);
 				delete sql;

@@ -53,15 +53,15 @@ $RAD_REPLY{'Reply-Message'}='Welcome to the internet! ;)';
 #Connect to MYSQL
 my $dbh = DBI->connect("DBI:mysql:$db_name:$db_host:$db_port", $db_user, $db_pass);
 
-my ($money,$uin,$password,$ipnum,$is_active)=undef;
-#get username, password etc from MYSQL
-my $query='select debit+credit, id,password,user_ip,active from users where login=?;';
+my ($money,$uin,$password,$ipnum,$is_active,$parent,$parent_money)=undef;
+#Check if user has enough money on account:
+my $query='select a.debit+a.credit, a.id, a.user_ip, a.active, a.parent, b.credit+ b.debit from users as a left join users as b on a.parent = b.id where a.login=? limit 1';
 my $sth = $dbh->prepare($query);
 my $rv = $sth->execute($uid) or die "can't execute the query:". $sth->errstr;
-($money,$uin,$password,$ipnum,$is_active)=$sth->fetchrow_array;
+($money,$uin,$password,$ipnum,$is_active,$parent,$parent_money)=$sth->fetchrow_array;
 if ($uin && $password)
 {	
-	if ($money<0) {
+	if (($money < 0 && !$parent) || ($parent && $parent_money < 0)) {
 		$resp=1;
 		$RAD_REPLY{'Reply-Message'}='Not enough money on account, sorry :(';
 	};
