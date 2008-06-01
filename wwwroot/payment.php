@@ -1,7 +1,7 @@
 <?
 require ('auth.php');
 
-if (($_SESSION['is_cash_admin']!=true) || ($_SESSION['is_admin']!=true)){
+if (($_SESSION['is_cash_admin']!=true) && ($_SESSION['is_admin']!=true)){
 	echo '<html><head>';
 	echo '<Meta http-equiv="Content-type" content="Text/html;charset=utf-8">';
 	echo '</head><body>';
