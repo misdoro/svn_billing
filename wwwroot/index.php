@@ -8,12 +8,12 @@ echo '</head><body>';
 echo 'Здравствуйте, '.$_SESSION['firstname'].'!';
 
 //Print out credit and debit values:
-$query='select id,debit,credit from users where login=\''.$_SESSION['username'].'\';';
+$query='select id,debit,credit from users where id=\''.$_SESSION['bill_id'].'\';';
 //echo $query;
 $res=$mysqli->query($query);
 $l=$res->fetch_row();
 if ($l){
-	$_SESSION['id']=$l[0];
+	//$_SESSION['id']=$l[0];
 	echo "<br>Баланс лицевого счета: ".sprintf('%f',$l[1]).' рублей.';
 	echo "<br>Кредит: ".sprintf('%f',$l[2]).' рублей.';
 }

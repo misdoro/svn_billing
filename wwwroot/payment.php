@@ -1,7 +1,7 @@
 <?
 require ('auth.php');
 
-if ($_SESSION['is_admin']!=true){
+if (($_SESSION['is_cash_admin']!=true) || ($_SESSION['is_admin']!=true)){
 	echo '<html><head>';
 	echo '<Meta http-equiv="Content-type" content="Text/html;charset=utf-8">';
 	echo '</head><body>';
@@ -59,7 +59,7 @@ echo 'Здравствуйте, '.$_SESSION['firstname'].'!';
 echo '<form action="payment.php" method="POST">';
 echo '<select name="user_name" id="user_name" onchange="changed_user();">';
 echo '<option value="Выберите пользователя:">Выберите пользователя:';
-$query='select id,login,debit,credit from users;';
+$query='select id,login,debit,credit from users where parent is NULL;';
 $res=$mysqli->query($query);
 while ($l=$res->fetch_row()){
 	echo '<option value="'.$l[1].'" ';
