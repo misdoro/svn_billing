@@ -25,6 +25,7 @@ if (strstr($_SERVER['PHP_SELF'],'auth.php')){
 		$_SESSION['is_admin']=false;
 		$_SESSION['is_cash_admin']=false;
 		$_SESSION['user_id']=0;
+		$_SESSION['bill_id']=0;
 		header('Location: index.php');
 		exit;
 	}else {
@@ -71,10 +72,12 @@ if (strstr($_SERVER['PHP_SELF'],'auth.php')){
 						$_SESSION['is_cash_admin']=true;
 					};
 					//get numeric ID from MySQL
-					$query='SELECT id FROM users WHERE login="'.$_SESSION['username'].'"';
+					$query='SELECT id,parent FROM users WHERE login="'.$_SESSION['username'].'"';
 					$res=$mysqli->query($query);
 					$l=$res->fetch_row();
-					$_SESSION['user_id']=$l[0];
+					$_SESSION['user_id']=(int)$l[0];
+					if ($l[1]>0) $_SESSION['bill_id']=(int)$l[1];
+					else $_SESSION['bill_id']=(int)$l[0];
 				}else{
 					header('Location: auth.php');
 					exit;
