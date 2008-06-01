@@ -131,6 +131,15 @@ $packlist.= '</SELECT>';
 			<title>Управление пакетами: <?=$_SESSION['fullname'];?></title>
 		</head>
 		<body>
+				<script language="JavaScript" type="text/javascript">
+				function ask_submit(){
+					packlist=document.getElementById("pack_name");
+					packname=packlist.options[packlist.selectedIndex].text;
+					if (confirm("Подключить пакет"+packname+"?")) {
+						document.forms[0].submit();
+					};
+				};
+				</script>
 				<p>Подключенные пакеты:
 				<br><?=$packstable;?>
 				<br>
@@ -138,7 +147,7 @@ $packlist.= '</SELECT>';
 				<p>Подключить пакет:
 				<br><?=$packlist;?>
 				<br>для пользователя <?=$users;?>
-				<br><input type="submit" value="Подключить!">
+				<br><input type="button" onclick="ask_submit();" value="Подключить!">
 				</form>
 				<?=$result;?>
 		</body>
