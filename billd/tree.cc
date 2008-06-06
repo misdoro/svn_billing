@@ -64,7 +64,7 @@ void datarec_dump(stat_record* data, MYSQL *fs_link, uint32_t session_id, char* 
 		mysql_query(fs_link, sql);
 	}else if (data->updated){
 		//Query in case of hostport record update:
-		sprintf(sql,"UPDATE hostport_stat set traf_in+=%u, traf_out+=%u, packets_in+=%u, packets_out+=%u, updatescount++ WHERE session_id=%u AND host=%u AND port=%u",
+		sprintf(sql,"UPDATE hostport_stat SET traf_in=traf_in+%u, traf_out=traf_out+%u, packets_in=packets_in+%u, packets_out=packets_out+%u, updatescount=updatescount+1 WHERE session_id=%u AND host=%u AND port=%u",
 		data->bytes_in, data->bytes_out, data->packets_in, data->packets_out, session_id, data->host, data->port );
 		logmsg(DBG_HPSTAT,"%s", sql);
 		mysql_query(fs_link, sql);
