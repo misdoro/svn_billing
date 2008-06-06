@@ -58,13 +58,13 @@ void datarec_dump(stat_record* data, MYSQL *fs_link, uint32_t session_id, char* 
 	data->packets_out, data->new_rec ? 1 : 0, data->updated ? 1 : 0);
 	//Query in case of a new hostport record:
 	if (data->new_rec){
-		sprintf(sql,"INSERT INTO hostport_stat (host, port, traf_in, traf_out, packets_in, packets_out, session_id) VALUES (%u,%u, %lu, %lu, %u, %u, %u)",
+		sprintf(sql,"INSERT INTO hostport_stat (host, port, traf_in, traf_out, packets_in, packets_out, session_id) VALUES (%u,%u, %u, %u, %u, %u, %u)",
 		data->host, data->port, data->bytes_in, data->bytes_out, data->packets_in, data->packets_out, session_id );
 		logmsg(DBG_HPSTAT,"%s", sql);
 		mysql_query(fs_link, sql);
 	}else if (data->updated){
 		//Query in case of hostport record update:
-		sprintf(sql,"UPDATE hostport_stat set traf_in+=%lu, traf_out+=%lu, packets_in+=%u, packets_out+=%u, updatescount++ WHERE session_id=%u AND host=%u AND port=%u",
+		sprintf(sql,"UPDATE hostport_stat set traf_in+=%u, traf_out+=%u, packets_in+=%u, packets_out+=%u, updatescount++ WHERE session_id=%u AND host=%u AND port=%u",
 		data->bytes_in, data->bytes_out, data->packets_in, data->packets_out, session_id, data->host, data->port );
 		logmsg(DBG_HPSTAT,"%s", sql);
 		mysql_query(fs_link, sql);
@@ -211,10 +211,10 @@ host_node *fs_update(host_node* node,uint32_t host, stat_record* data,host_node*
 			if (node->port == NULL) node->port=port;
 			//If found existing, update it, else skip;
 			if (port->data != data) {
-				port->data->bytes_in+= data->bytes_in;
-				port->data->bytes_out+= data->bytes_out;
-				port->data->packets_in+=data->packets_in;
-				port->data->packets_out+=data->packets_out;
+				port->data->bytes_in= data->bytes_in;
+				port->data->bytes_out= data->bytes_out;
+				port->data->packets_in=data->packets_in;
+				port->data->packets_out=data->packets_out;
 				port->data->updated=true;
 			}
 			return NULL;

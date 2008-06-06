@@ -9,8 +9,8 @@ Inspired by http://cslibrary.stanford.edu/110/BinaryTrees.html
 typedef struct stat_record{
 	uint32_t host;		//Peer host
 	uint16_t port;		//Peer port
-	uint64_t bytes_in;	//overall recieved bytes
-	uint64_t bytes_out;	//overall sent bytes
+	uint32_t bytes_in;	//overall recieved bytes
+	uint32_t bytes_out;	//overall sent bytes
 	uint32_t packets_in;	//overall recieved packets
 	uint32_t packets_out;	//overall sent packets
 	bool new_rec;		//Need insert instead of update
