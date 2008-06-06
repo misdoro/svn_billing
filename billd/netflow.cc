@@ -117,7 +117,7 @@ void * netflowlistener(void *threadid)
 			logmsg(DBG_NETFLOW,"NAS uptime: %u", packet->uptime);
 			//flow_sequence
 			logmsg(DBG_NETFLOW,"First flow sequence: %u", packet->seq);
-			
+
 			//Calculate NAS start time:
 			uint32_t nasstart=(packet->time - packet->uptime/1000);
 			//Fill in packet data
@@ -137,6 +137,7 @@ void * netflowlistener(void *threadid)
 					dst_ip = (records[n].srcaddr == currentuser->user_ip ? records[n].dstaddr : records[n].srcaddr);
 					dst_port = (records[n].srcaddr == currentuser->user_ip ? records[n].dstport : records[n].srcport);
 					flow_direction = (records[n].srcaddr == currentuser->user_ip ? 0 : 1);
+					//Store per-zone stats:
 					currentzone = getflowzone(currentuser, dst_ip, dst_port);
 					if (currentzone != NULL) {
 						if (flow_direction == 0)
@@ -156,6 +157,34 @@ void * netflowlistener(void *threadid)
 						logmsg(DBG_NETFLOW,"Record %i: session %i, in: %lu, out: %lu",packet->seq+n,currentuser->session_id,currentzone->group_ref->in_bytes,currentzone->group_ref->out_bytes);
 					} else {
 						logmsg(DBG_NETFLOW,"Warning! Zone not found! (uid: %u, srcaddr: %s, dstaddr %s)", currentuser->id, ipFromIntToStr(records[n].srcaddr), ipFromIntToStr(records[n].dstaddr));
+					};
+					//Store per-host-port stats:
+					//Construct new record:
+					stat_record * stat_r = new stat_record;
+					if (flow_direction == 0)
+					{
+						stat_r->bytes_out=records[n].bytecount;
+						stat_r->bytes_in=0;
+						stat_r->packets_out=records[n].pktcount;
+						stat_r->packets_in=0;
+					}
+					else if (flow_direction == 1)
+					{
+						stat_r->bytes_in=records[n].bytecount;
+						stat_r->bytes_out=0;
+						stat_r->packets_out=0;
+						stat_r->packets_in=records[n].pktcount;
+					};
+					stat_r->host=dst_ip;
+					stat_r->port=dst_port;
+					stat_r->new_rec=true;
+					stat_r->updated=true;
+					//Store record in tree:
+					host_node * stat_result=fs_update(currentuser->hostport_tree,dst_ip,stat_r, NULL);
+					//If just started tree and got it from fs_update, attach it to user, otherwise keep tree head (or empty, which is error)
+					if ((stat_result != NULL) &&  (currentuser->hostport_tree == NULL)) currentuser->hostport_tree = stat_result;
+					if (currentuser->hostport_tree == NULL) {
+						logmsg(DBG_NETFLOW,"Warning! User %i still has empty hostport tree! :(",currentuser->id);
 					};
 					verbose_mutex_unlock(&(currentuser->user_mutex));
 				} else {

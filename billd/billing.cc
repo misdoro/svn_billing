@@ -53,6 +53,7 @@ int main(int argc, char** argv) {
 	config.readInto( cfg.debug_offload,	"billd_debug_offload", 	false);
 	config.readInto( cfg.debug_events,	"billd_debug_events",	false);
 	config.readInto( cfg.debug_threads, "billd_debug_threads",	false);
+	config.readInto( cfg.debug_hpstat, 	"billd_debug_hpstat",	false);
 	config.readInto( cfg.log_date,	"billd_log_date",	true);
 	config.readInto( cfg.verbose_daemonize,	"billd_debug_daemonize",false);
 	config.readInto( cfg.do_fork,		"billd_daemon_mode",	true);
@@ -67,6 +68,7 @@ int main(int argc, char** argv) {
 	config.readInto( cfg.user,		"billd_run_user",	string("nobody"));
 	config.readInto( cfg.workingdir,	"billd_working_dir",	string("/"));
 	config.readInto( cfg.stats_update_interval, "billd_stats_update_interval", (uint32_t) 25);
+	config.readInto( cfg.fs_update_interval, "billd_stats_update_interval", (uint32_t) 25);
 	config.readInto( cfg.die_time_interval, "billd_user_grace_time", (uint32_t) 30);
 	/*if ((cfg.myconn= connectdb()) == NULL) {
 		logmsg(DBG_ALWAYS,"Error. Could not connect to database.\n");
@@ -86,7 +88,7 @@ int main(int argc, char** argv) {
 // here - connect to mysql, read usertables, zones
 //
 // here - start threads
-	pthread_t threads[3];
+	pthread_t threads[4];
 	int rc = 0;
 	uint64_t t=0;
 //Create user connect/disconnect listener
@@ -103,12 +105,18 @@ int main(int argc, char** argv) {
 	}
 //Create stats update thread:
 	rc = pthread_create(&threads[2], NULL, statsupdater, (void *)t);
-        if (rc) {
+	if (rc) {
 		logmsg(DBG_ALWAYS,"ERROR; return code from pthread_create() is %d\n", rc);
 		exit(-1);
-	};
-	if (cfg.do_fork) fflush(stdout);
+	}
+//Create hostport stats update thread:
+	rc = pthread_create(&threads[3], NULL, flowstatsupdater, (void *)t);
+	if (rc) {
+		logmsg(DBG_ALWAYS,"ERROR; return code from pthread_create() is %d\n", rc);
+		exit(-1);
+	}
 
+	if (cfg.do_fork) fflush(stdout);
 	while (cfg.stayalive) sleep(1);
 	logmsg(DBG_THREADS,"Main thread prepares to quit");
 	sleep(5);

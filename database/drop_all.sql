@@ -3,7 +3,7 @@ drop table if exists groupnames;
 drop table if exists packs;
 drop table if exists session_statistics;
 drop table if exists sessions;
-drop table if exists statistics;
+drop table if exists hostport_stat;
 drop table if exists usergroups;
 drop table if exists userpacks;
 drop table if exists users;

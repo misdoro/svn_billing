@@ -1,5 +1,5 @@
 /*
- * File:   billing.h Author: flexx
+ * File:   billing.h authors: flexx, misdoro
  *
  */
 
@@ -37,6 +37,7 @@
 #include <unistd.h>
 
 #include "ConfigFile.h"
+#include "tree.h"
 #define MB_LENGTH 1048576
 
 using namespace std;
@@ -121,6 +122,7 @@ typedef struct user {
 	zone_group *first_zone_group;
 	pthread_mutex_t user_mutex;
 	pthread_t user_drop_thread;
+	host_node *hostport_tree;
 };
 
 typedef struct configuration {
@@ -153,6 +155,9 @@ typedef struct configuration {
 	//put stats into DB
 	uint32_t stats_updated_time;
 	uint32_t stats_update_interval;
+	//host-port flow stats updates:
+	uint32_t fs_updated_time;
+	uint32_t fs_update_interval;
 	//to remove disconnnected users
 	uint32_t die_time_interval;
 	bool debug_locks;
@@ -160,6 +165,7 @@ typedef struct configuration {
 	bool debug_offload;
 	bool debug_events;
 	bool debug_threads;
+	bool debug_hpstat;
 	bool verbose_daemonize;
 	bool do_fork;
 	bool appendlogs;
@@ -176,6 +182,7 @@ typedef struct configuration {
 #define DBG_EVENTS 8
 #define DBG_DAEMON 16
 #define DBG_THREADS	32
+#define DBG_HPSTAT 64
 #define DBG_ALWAYS 128
 
 extern user *firstuser;

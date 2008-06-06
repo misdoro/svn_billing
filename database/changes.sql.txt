@@ -1,0 +1,21 @@
+/*rev.52*/
+alter table session_statistics modify column traf_in int unsigned not null default 0
+alter table session_statistics modify column traf_out int unsigned not null default 0
+
+/*
+Table for per-server session summary stats
+*/
+CREATE TABLE IF NOT EXISTS `hostport_stat` (
+	`id` int unsigned NOT NULL auto_increment,		/*record ID*/
+	`host` int unsigned NOT NULL default 0,
+	`port` smallint unsigned NOT NULL default 0,
+	`traf_in` bigint unsigned NOT NULL default '0',
+	`traf_out` bigint unsigned NOT NULL default '0',
+	`packets_in` int unsigned NOT NULL default '0',
+	`packets_out` int unsigned NOT NULL default '0',
+	`session_id` int unsigned NOT NULL default '0',
+	`updatescount` smallint unsigned NOT NULL default '0',
+  PRIMARY KEY  (`id`),
+  KEY `session_id` (`session_id`),
+  key `net_key` (`host`,`port`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
