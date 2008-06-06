@@ -11,6 +11,7 @@ void logmsg ( uint8_t flags, char* message, ...)
 		(flags & DBG_OFFLOAD && cfg.debug_offload) ||
 		(flags & DBG_DAEMON && cfg.verbose_daemonize) ||
 		(flags & DBG_THREADS && cfg.debug_threads) ||
+		(flags & DBG_HPSTAT && cfg.debug_hpstat) ||
 		(flags & DBG_ALWAYS))
 	{
 		pthread_mutex_lock(&log_mutex);
@@ -125,6 +126,8 @@ void removeUser(user * current_u)
 		p = p->next;
 		delete previous_zone;
 	}
+	//delete all user's host-port data stats:
+	fs_deleteTree(current_u->hostport_tree);
 	logmsg(DBG_EVENTS,"Removing user %i...", current_u->id);
 	//remove user
 	if (firstuser == current_u) {
@@ -153,10 +156,11 @@ char *ipFromIntToStr(uint32_t ip)
 {
 	in_addr a;
 	a.s_addr = htonl(ip);
-	char *addr = inet_ntoa(a);
+	/*char *addr = inet_ntoa(a);
 	char *myaddr = new char[strlen(addr) + 1];
 	strcpy(myaddr, addr);
-	return myaddr;
+	return myaddr;*///Memory leak is here, some not thread-safe solution:
+	return inet_ntoa(a);
 }
 
 uint32_t ipFromStrToInt(const char *ipstr)
@@ -208,6 +212,7 @@ user *onUserConnected(char *session_id, MYSQL * link)
 	pthread_mutex_t	mutex = PTHREAD_MUTEX_INITIALIZER;
 	newuser->user_mutex = mutex;
 	newuser->user_drop_thread = 0;
+	newuser->hostport_tree = NULL;
 	//logmsg(DBG_EVENTS,"User info - id:%s, debit:%s, credit:%s, parent %s, parent money %s, parent credit %s", row[0], row[1], row[2], row[6], row[7], row[8]);
 	mysql_free_result(result);
 	//get user groups

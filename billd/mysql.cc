@@ -30,11 +30,11 @@ void * statsupdater(void *threadid) {
 				logmsg(DBG_OFFLOAD,"Session %s:",u->verbose_session_id.c_str());
 				zone_group * p = u->first_zone_group;
 				double charged_money=0;
+				char * sql = new char[1024];
 				//Save stat record for each of user's groups:
 				while (p != NULL){
 					logmsg(DBG_OFFLOAD,"   group %i: in %lu out %lu ",p->id, p->in_diff,p->out_diff);
 					if (p->group_changed == 1) {
-						char * sql = new char[1024];
 						//Update according pack, if any
 						sprintf(sql, "UPDATE userpacks SET units_left = units_left - %lu WHERE user_id=%u AND unittype=1 AND date_expire > CURRENT_TIMESTAMP AND unit_zone=%u AND units_left>%lu ORDER BY date_on ASC LIMIT 1",p->in_diff,u->bill_id,p->id,p->in_diff);
 						mysql_query(su_link, sql);
@@ -49,7 +49,6 @@ void * statsupdater(void *threadid) {
 						sprintf(sql, "insert into session_statistics (zone_group_id,session_id,traf_in,traf_out,traf_in_money) values (%i,%i,%lu,%lu,%f);",p->id,u->session_id,p->in_diff,p->out_diff,money);
 						mysql_query(su_link, sql);
 						logmsg(DBG_OFFLOAD,"%s",sql);
-						delete sql;
 						p->in_diff=0;
 						p->out_diff=0;
 						p->group_changed = 0;
@@ -58,15 +57,12 @@ void * statsupdater(void *threadid) {
 				}
 				//Update user's debit:
 				if ( charged_money>0 ) {
-					char * sql = new char[1024];
 					sprintf(sql, "UPDATE users SET debit=debit-%f WHERE id=%u", charged_money,u->bill_id);
 					mysql_query(su_link, sql);
 					logmsg(DBG_OFFLOAD,"%s",sql);
-					delete sql;
 				}
 				//Check user's debit and drop him if he is out of funds:
 				MYSQL_RES *result;
-				char * sql = new char[1024];
 				sprintf(sql, "SELECT users.debit+users.credit from users where users.id=%i", u->bill_id);
 				verbose_mutex_unlock (&(u->user_mutex));
 				mysql_query(su_link, sql);

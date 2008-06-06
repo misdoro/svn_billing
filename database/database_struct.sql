@@ -59,31 +59,13 @@ CREATE TABLE IF NOT EXISTS `sessions`	(
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 /*
-Table for per-zone statistics (non summary)
-*/
-CREATE TABLE IF NOT EXISTS `statistics` (
-	`id` int unsigned NOT NULL auto_increment,		/*record ID*/
-	`user_id` int unsigned NOT NULL default '0',
-	`zone_group_id` int unsigned  NOT NULL,
-	`traf_in` int unsigned NOT NULL default '0',
-	`traf_out` int unsigned NOT NULL default '0',
-	`stat_time`	timestamp NOT NULL default CURRENT_TIMESTAMP,	/*record date*/
-	`session_id` int unsigned NOT NULL default '0',
-	PRIMARY KEY  (`id`),
-	KEY `user_id` (`user_id`,`zone_group_id`),
-	KEY `session_id` (`session_id`),
-	KEY `stat_time` (`stat_time`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-
-/*
 Table for per-zone statistics (per-session summary)
 */
 CREATE TABLE IF NOT EXISTS `session_statistics` (
 	`id` int unsigned NOT NULL auto_increment,		/*record ID*/
-	`user_id` int unsigned NOT NULL default '0',
 	`zone_group_id` int unsigned  NOT NULL,
-	`traf_in` bigint unsigned NOT NULL default '0',
-	`traf_out` bigint unsigned NOT NULL default '0',
+	`traf_in` int unsigned NOT NULL default '0',
+	`traf_out` int unsigned NOT NULL default '0',
 	`traf_in_money` double NOT NULL default '0',	/*Let it be double precision*/
 	`stat_time`	timestamp NOT NULL default CURRENT_TIMESTAMP,	/*record date*/
 	`session_id` int unsigned NOT NULL default '0',
@@ -91,6 +73,24 @@ CREATE TABLE IF NOT EXISTS `session_statistics` (
   KEY `user_id` (`zone_group_id`),
   KEY `session_id` (`session_id`),
   KEY `timekey` (`stat_time`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+/*
+Table for per-server session summary stats
+*/
+CREATE TABLE IF NOT EXISTS `hostport_stat` (
+	`id` int unsigned NOT NULL auto_increment,		/*record ID*/
+	`host` int unsigned NOT NULL default 0,
+	`port` smallint unsigned NOT NULL default 0,
+	`traf_in` bigint unsigned NOT NULL default '0',
+	`traf_out` bigint unsigned NOT NULL default '0',
+	`packets_in` int unsigned NOT NULL default '0',
+	`packets_out` int unsigned NOT NULL default '0',
+	`session_id` int unsigned NOT NULL default '0',
+	`updatescount` smallint unsigned NOT NULL default '0',
+  PRIMARY KEY  (`id`),
+  KEY `session_id` (`session_id`),
+  key `net_key` (`host`,`port`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 /*
