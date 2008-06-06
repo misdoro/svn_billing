@@ -69,6 +69,10 @@ void datarec_dump(stat_record* data, MYSQL *fs_link, uint32_t session_id, char* 
 		logmsg(DBG_HPSTAT,"%s", sql);
 		mysql_query(fs_link, sql);
 	};
+	data->packets_in=0;
+	data->bytes_in=0;
+	data->bytes_out=0;
+	data->packets_out=0;
 	data->new_rec = false;
 	data->updated = false;
 
@@ -211,10 +215,10 @@ host_node *fs_update(host_node* node,uint32_t host, stat_record* data,host_node*
 			if (node->port == NULL) node->port=port;
 			//If found existing, update it, else skip;
 			if (port->data != data) {
-				port->data->bytes_in= data->bytes_in;
-				port->data->bytes_out= data->bytes_out;
-				port->data->packets_in=data->packets_in;
-				port->data->packets_out=data->packets_out;
+				port->data->bytes_in+= data->bytes_in;
+				port->data->bytes_out+= data->bytes_out;
+				port->data->packets_in+=data->packets_in;
+				port->data->packets_out+=data->packets_out;
 				port->data->updated=true;
 			}
 			return NULL;
