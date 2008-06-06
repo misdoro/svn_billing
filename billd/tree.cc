@@ -54,7 +54,7 @@ host_node *fs_newNode(port_node* port,uint32_t host) {
 */
 void datarec_dump(stat_record* data, MYSQL *fs_link, uint32_t session_id, char* sql){
 	logmsg(DBG_HPSTAT,"Host: %s, port %u, bytes in %u, bytes out %u, packets in %i, packets out %u, new_rec: %i, updated: %i, ",
-	data->host, data->port, data->bytes_in, data->bytes_out, data->packets_in,
+	ipFromIntToStr(data->host), data->port, data->bytes_in, data->bytes_out, data->packets_in,
 	data->packets_out, data->new_rec ? 1 : 0, data->updated ? 1 : 0);
 	//Query in case of a new hostport record:
 	if (data->new_rec){
@@ -64,7 +64,7 @@ void datarec_dump(stat_record* data, MYSQL *fs_link, uint32_t session_id, char* 
 		mysql_query(fs_link, sql);
 	}else if (data->updated){
 		//Query in case of hostport record update:
-		sprintf(sql,"UPDATE hostport_stat set traf_in+=%lu, traf_out+=%lu, packets_in+=%u, packets_out+=%u, WHERE session_id=%u AND host=%u AND port=%u",
+		sprintf(sql,"UPDATE hostport_stat set traf_in+=%lu, traf_out+=%lu, packets_in+=%u, packets_out+=%u, updatescount++ WHERE session_id=%u AND host=%u AND port=%u",
 		data->bytes_in, data->bytes_out, data->packets_in, data->packets_out, session_id, data->host, data->port );
 		logmsg(DBG_HPSTAT,"%s", sql);
 		mysql_query(fs_link, sql);
@@ -194,8 +194,8 @@ port_node *find_port(port_node* pnode, stat_record* data, port_node* parent){
 host_node *fs_update(host_node* node,uint32_t host, stat_record* data,host_node* parent){
 	// 1. Empty tree or new record:
 	if (node == NULL){
-		port_node* port = new port_node;
-		find_port(port,data,NULL);
+		port_node* port;
+		port=find_port(NULL,data,NULL);
 		if (parent==NULL) return(fs_newNode(port,host));
 		else {
 			if (host < parent->host) parent->left=fs_newNode(port,host);
