@@ -213,13 +213,14 @@ host_node *fs_update(host_node* node,uint32_t host, stat_record* data,host_node*
 			port_node* port = find_port(node->port, data, NULL);
 			//If first node, update host_node;
 			if (node->port == NULL) node->port=port;
-			//If found existing, update it, else skip;
+			//If found existing, update it and delete temp, else skip;
 			if (port->data != data) {
 				port->data->bytes_in+= data->bytes_in;
 				port->data->bytes_out+= data->bytes_out;
 				port->data->packets_in+=data->packets_in;
 				port->data->packets_out+=data->packets_out;
 				port->data->updated=true;
+				delete data;
 			}
 			return NULL;
 		}else {
