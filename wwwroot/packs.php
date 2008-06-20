@@ -128,6 +128,7 @@ $packlist.= '</SELECT>';
 <html>
 		<head>
 			<Meta http-equiv="Content-type" content="Text/html;charset=utf-8">
+			<link rel=stylesheet href=style.css>
 			<title>Управление пакетами: <?=$_SESSION['fullname'];?></title>
 		</head>
 		<body>

@@ -11,10 +11,9 @@ if (!isset($mysqli)){
 };
 
 if (isset($_GET['logout'])){
-	$_SESSION['username']='';
-	$_SESSION['password']='';
-	$_SESSION['is_admin']=false;
-	$_SESSION['is_cash_admin']=false;
+	session_destroy();
+	header('Location: auth.php');
+	exit;
 };
 //If we are calling ourself:
 if (strstr($_SERVER['PHP_SELF'],'auth.php')){
