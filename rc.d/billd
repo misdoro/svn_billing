@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# PROVIDE: billd
+# REQUIRE: mysql
+
+#
+# Add the following lines to /etc/rc.conf to enable rinetd:
+# billd_enable (bool): Set to "NO" by default.
+#                       Set it to "YES" to enable rinetd
+# billd_flags (str):   Set to "" by default.
+#                       Extra flags passed to start command
+#
+. /etc/rc.subr
+
+name="billd"
+rcvar=`set_rcvar`
+
+load_rc_config $name
+
+: ${billd_enable="NO"}
+: ${billd_flags=""}
+
+command="/usr/local/billing/bin/billd"
+pidfile="/var/run/billd.pid"
+
+run_rc_command "$1"
