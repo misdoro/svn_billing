@@ -1,3 +1,6 @@
+/*rev.61*/
+alter table users add column mlimit decimal(11,2) not null default 0;
+
 /*rev.52*/
 alter table session_statistics modify column traf_in int unsigned not null default 0
 alter table session_statistics modify column traf_out int unsigned not null default 0
