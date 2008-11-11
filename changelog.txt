@@ -1,0 +1,8 @@
+R61:
+Fixed query in radius_mysql_passwords.pm to contain password
+Implemented MySQL auth in web-interface
+Moved some strings to separate file
+Added user's monthly limit row
+Modified index.php to support business and homenet modes
+Modified stats.php to support business and homenet modes
+Modified payment.php to support business and homenet modes
