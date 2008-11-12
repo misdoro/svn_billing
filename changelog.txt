@@ -1,3 +1,7 @@
+R62:
+Implemented quite sophisticated users table (but probably some bugs still exist)
+All data is updated automatically, thanks to xmlhttprequest, no page reloads at all =)
+
 R61:
 Fixed query in radius_mysql_passwords.pm to contain password
 Implemented MySQL auth in web-interface
