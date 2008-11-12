@@ -1,7 +1,7 @@
 <?
 
 function filterit($string){
-return preg_replace("/([^a-zA-Z0-9_])/","",$string);
+return preg_replace("/([^a-zA-Z0-9_.])/","",$string);
 };
 
 function logquery($query,$mysqli){
