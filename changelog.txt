@@ -1,3 +1,6 @@
+R63:
+Basic implementation of per-session traffic graphs
+
 R62:
 Implemented quite sophisticated users table (but probably some bugs still exist)
 All data is updated automatically, thanks to xmlhttprequest, no page reloads at all =)
