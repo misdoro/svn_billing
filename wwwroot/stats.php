@@ -1,11 +1,7 @@
 <?
 require ('auth.php');
 
-//select sum(session_statistics.traf_in), sum(session_statistics.traf_out), sum(session_statistics.traf_in_money), groupnames.caption from session_statistics,sessions,groupnames where session_statistics.stat_time > '2008-05-01 00:00:00' and session_statistics.stat_time < '2008-06-01 00:00:00' and session_statistics.session_id=sessions.id and sessions.user_id=18 and session_statistics.zone_group_id=groupnames.id group by session_statistics.zone_group_id;
-
 //Init session vars if necessary:
-//if (!isset($_SESSION['stat_month'])) $_SESSION['stat_month']=date("m");
-//if (!isset($_SESSION['stat_year'])) $_SESSION['stat_year']=date("Y");
 if (!isset($_SESSION['stat_mode'])) $_SESSION['stat_mode']=0;
 //stat start time and stat end time:
 if (!isset($_SESSION['stat_start']) || !isset ($_SESSION['stat_end'])){
@@ -49,6 +45,9 @@ $optssel='<form action="stats.php" method="POST">';
 if ($_SESSION['is_admin']){
 	$optssel.='<p>'.$lang['Username'];
 	$optssel.='<select name="user" id="user">';
+	$optssel.='<option value="-1"';
+	if ($l[0]==$stat_uid) $optssel.= 'selected';
+	$optssel.='>Все';
 	$query='select id,login from users;';
 	$res=$mysqli->query($query);
 	while ($l=$res->fetch_row()){
@@ -87,54 +86,87 @@ $optssel.='<p><input type="Submit" value="Обновить"></form>';
 //Get stats table:
 $stats_table='';
 if ($stmode ==0){//Per-zone stats:
-	$query="SELECT SUM(session_statistics.traf_in), SUM(session_statistics.traf_out), SUM(session_statistics.traf_in_money), groupnames.caption FROM session_statistics,sessions,groupnames WHERE UNIX_TIMESTAMP(session_statistics.stat_time) > '$stat_start' AND UNIX_TIMESTAMP(session_statistics.stat_time) < '$stat_end' AND session_statistics.session_id=sessions.id AND sessions.user_id=$stat_uid AND session_statistics.zone_group_id=groupnames.id GROUP BY session_statistics.zone_group_id;";
+	$query="SELECT SUM(session_statistics.traf_in), SUM(session_statistics.traf_out), SUM(session_statistics.traf_in_money), groupnames.caption,UNIX_TIMESTAMP(MIN(session_statistics.stat_time)),UNIX_TIMESTAMP(MAX(session_statistics.stat_time)),groupnames.id FROM session_statistics";
+	if ($stat_uid>0) $query.=',sessions';
+	else $query.=' USE INDEX (timekey) ';
+	$query .=",groupnames WHERE session_statistics.stat_time >= FROM_UNIXTIME('$stat_start') AND session_statistics.stat_time  <= FROM_UNIXTIME('$stat_end') ";
+	if ($stat_uid>0) $query .=" AND session_statistics.session_id=sessions.id AND sessions.user_id=$stat_uid ";
+	$query .= " AND session_statistics.zone_group_id=groupnames.id GROUP BY session_statistics.zone_group_id;";
 	//echo $query;
 	$res=$mysqli->query($query);
 	if ($res){
 		if ($business_mode){
-			$stats_table='<table><tr><th>Входящий, МБ</th><th>Направление</th></tr>';
-			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.sprintf("%01.2f",$l[2]).'</td><td>'.$l[3].'</td></tr>';
+			$stats_table='<table><tr><th>Входящий, МБ</th><th>Направление</th><th>график</th></tr>';
+			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.sprintf("%01.2f",$l[0]/1048576).'</td><td>'.$l[3].'</td><td><a href="graphs.php?uid='.$stat_uid.'&gid='.$l[6].'&start='.$l[4].'&end='.$l[5].'" target=blank>в новом окне</td></tr>';
 		}else{
-			$stats_table='<table><tr><th>входящий, байт</th><th>исходящий, байт</th><th>Направление</th><th>Снято со счета</th></tr>';
+			$stats_table='<table><tr><th>входящий, байт</th><th>исходящий, байт</th><th>Направление</th><th>Снято со счета</th><th>график</th></tr>';
 			while ($l=$res->fetch_row()){
-				$stats_table.='<tr><td>'.$l[0].'</td><td>'.$l[1].'</td><td>'.$l[3].'</td><td>'.$l[2].'</td></tr>';
+				$stats_table.='<tr><td>'.$l[0].'</td><td>'.$l[1].'</td><td>'.$l[3].'</td><td>'.$l[2].'</td><td><a href="graphs.php?uid='.$stat_uid.'&gid='.$l[6].'&start='.$l[4].'&end='.$l[5].'" target=blank>в новом окне</td></tr>';
 			};
 		};
 	};
 	$stats_table.='</table>';
 }else if ($stmode == 1){//Daily stats
 	if ($business_mode){
-		$query="SELECT (sum(session_statistics.traf_in) div 104.8576)/10000, (sum(session_statistics.traf_out) div 104.8576)/10000, sum(session_statistics.traf_in_money), DATE_FORMAT(MIN(session_statistics.stat_time),'%d-%c-%Y'),DATE_FORMAT(MAX(session_statistics.stat_time),'%e-%c-%Y'), groupnames.caption FROM session_statistics,sessions,groupnames WHERE unix_timestamp(session_statistics.stat_time) > '$stat_start' AND unix_timestamp(session_statistics.stat_time) < '$stat_end' AND session_statistics.session_id=sessions.id AND sessions.user_id=$stat_uid AND session_statistics.zone_group_id=groupnames.id GROUP BY (unix_timestamp(session_statistics.stat_time)-$stat_start) div 86400, session_statistics.zone_group_id;";
+		$query="SELECT (sum(session_statistics.traf_in) div 104.8576)/10000, (sum(session_statistics.traf_out) div 104.8576)/10000, sum(session_statistics.traf_in_money), DATE_FORMAT(MIN(session_statistics.stat_time),'%d-%c-%Y'),DATE_FORMAT(MAX(session_statistics.stat_time),'%e-%c-%Y'), groupnames.caption,UNIX_TIMESTAMP(MIN(session_statistics.stat_time)),UNIX_TIMESTAMP(MAX(session_statistics.stat_time)),groupnames.id FROM session_statistics";
+		if ($stat_uid>0) $query.=',sessions';
+		else $query.=' USE INDEX (timekey) ';
+		$query .=",groupnames WHERE session_statistics.stat_time >= FROM_UNIXTIME('$stat_start') AND session_statistics.stat_time  <= FROM_UNIXTIME('$stat_end') ";
+		if ($stat_uid>0) $query .=" AND session_statistics.session_id=sessions.id AND sessions.user_id=$stat_uid AND sessions.sess_end <= FROM_UNIXTIME('$stat_end') AND (sessions.sess_end >= FROM_UNIXTIME('$stat_start') OR sessions.state=2)";
+		$query .= " AND session_statistics.zone_group_id=groupnames.id GROUP BY (unix_timestamp(session_statistics.stat_time)-$stat_start) div 86400, session_statistics.zone_group_id;";
 	}else{
-		$query="SELECT (sum(session_statistics.traf_in) div 104.8576)/10000, (sum(session_statistics.traf_out) div 104.8576)/10000, sum(session_statistics.traf_in_money), min(session_statistics.stat_time),max(session_statistics.stat_time), groupnames.caption FROM session_statistics,sessions,groupnames WHERE unix_timestamp(session_statistics.stat_time) > '$stat_start' AND unix_timestamp(session_statistics.stat_time) < '$stat_end' AND session_statistics.session_id=sessions.id AND sessions.user_id=$stat_uid AND session_statistics.zone_group_id=groupnames.id GROUP BY (unix_timestamp(session_statistics.stat_time)-$stat_start) div 86400, session_statistics.zone_group_id;";
+		$query="SELECT (sum(session_statistics.traf_in) div 104.8576)/10000, (sum(session_statistics.traf_out) div 104.8576)/10000, sum(session_statistics.traf_in_money), min(session_statistics.stat_time),max(session_statistics.stat_time), groupnames.caption, UNIX_TIMESTAMP(MIN(session_statistics.stat_time)),UNIX_TIMESTAMP(MAX(session_statistics.stat_time)),groupnames.id FROM session_statistics";
+		if ($stat_uid>0) $query.=',sessions';
+		else $query.=' USE INDEX (timekey) ';
+		$query .=",groupnames WHERE session_statistics.stat_time >= FROM_UNIXTIME('$stat_start') AND session_statistics.stat_time  <= FROM_UNIXTIME('$stat_end') ";
+		if ($stat_uid>0) $query .=" AND session_statistics.session_id=sessions.id AND sessions.user_id=$stat_uid AND sessions.sess_end <= FROM_UNIXTIME('$stat_end') AND (sessions.sess_end >= FROM_UNIXTIME('$stat_start') OR sessions.state=2)";
+		$query .= " AND session_statistics.zone_group_id=groupnames.id  GROUP BY (unix_timestamp(session_statistics.stat_time)-$stat_start) div 86400, session_statistics.zone_group_id;";
 	};
 	//echo $query;
 	$res=$mysqli->query($query);
 	if ($res){
 		if ($business_mode){
-			$stats_table='<table><tr><th>Входящий, МБ</th><th>Направление</th><th>Дата</th></tr>';
-			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.sprintf("%01.2f",$l[2]).'</td><td>'.$l[5].'</td><td>'.$l[3].'</td></tr>';
+			$stats_table='<table><tr><th>Входящий, МБ</th><th>Направление</th><th>Дата</th><th>график</th></tr>';
+			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.sprintf("%01.2f",$l[0]).'</td><td>'.$l[5].'</td><td>'.$l[3].'</td><td><a href="graphs.php?uid='.$stat_uid.'&gid='.$l[8].'&start='.$l[6].'&end='.$l[7].'" target=blank>в новом окне</td></tr>';
 		}else{
-			$stats_table='<table><tr><th>входящий, МБ</th><th>исходящий, МБ</th><th>Снято со счета</th><th>Направление</th><th>Интервал</th></tr>';
-			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.$l[0].'</td><td>'.$l[1].'</td><td>'.$l[2].'</td><td>'.$l[5].'</td><td>'.$l[3].' - '.$l[4].'</td></tr>';
+			$stats_table='<table><tr><th>входящий, МБ</th><th>исходящий, МБ</th><th>Снято со счета</th><th>Направление</th><th>Интервал</th><th>график</th></tr>';
+			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.$l[0].'</td><td>'.$l[1].'</td><td>'.$l[2].'</td><td>'.$l[5].'</td><td>'.$l[3].' - '.$l[4].'</td><td><a href="graphs.php?uid='.$stat_uid.'&gid='.$l[8].'&start='.$l[6].'&end='.$l[7].'" target=blank>в новом окне</td></tr>';
 		};
 	};
 	$stats_table.='</table>';
 }else if ($stmode == 2){//per-session stats:
 	if ($business_mode){
-		$query="SELECT (sum(session_statistics.traf_in) div 104.8576)/10000, (sum(session_statistics.traf_out) div 104.8576)/10000, sum(session_statistics.traf_in_money), DATE_FORMAT(MIN(session_statistics.stat_time),'%d-%c-%Y'),max(session_statistics.stat_time), groupnames.caption, session_statistics.session_id FROM session_statistics,sessions,groupnames WHERE unix_timestamp(session_statistics.stat_time) > '$stat_start' AND unix_timestamp(session_statistics.stat_time) < '$stat_end' AND session_statistics.session_id=sessions.id AND sessions.user_id=$stat_uid AND session_statistics.zone_group_id=groupnames.id GROUP BY session_statistics.session_id, session_statistics.zone_group_id;";
+		$query="SELECT (sum(session_statistics.traf_in) div 104.8576)/10000, (sum(session_statistics.traf_out) div 104.8576)/10000, sum(session_statistics.traf_in_money), DATE_FORMAT(MIN(session_statistics.stat_time),'%d-%c-%Y'),max(session_statistics.stat_time), groupnames.caption, session_statistics.session_id,groupnames.id FROM session_statistics,sessions,groupnames WHERE unix_timestamp(session_statistics.stat_time) > '$stat_start' AND unix_timestamp(session_statistics.stat_time) < '$stat_end' AND session_statistics.session_id=sessions.id AND sessions.user_id=$stat_uid AND session_statistics.zone_group_id=groupnames.id GROUP BY session_statistics.session_id, session_statistics.zone_group_id;";
 	}else{
-		$query="SELECT (sum(session_statistics.traf_in) div 104.8576)/10000, (sum(session_statistics.traf_out) div 104.8576)/10000, sum(session_statistics.traf_in_money), min(session_statistics.stat_time),max(session_statistics.stat_time), groupnames.caption, session_statistics.session_id FROM session_statistics,sessions,groupnames WHERE unix_timestamp(session_statistics.stat_time) > '$stat_start' AND unix_timestamp(session_statistics.stat_time) < '$stat_end' AND session_statistics.session_id=sessions.id AND sessions.user_id=$stat_uid AND session_statistics.zone_group_id=groupnames.id GROUP BY session_statistics.session_id, session_statistics.zone_group_id;";
+		$query="SELECT (sum(session_statistics.traf_in) div 104.8576)/10000, (sum(session_statistics.traf_out) div 104.8576)/10000, sum(session_statistics.traf_in_money), min(session_statistics.stat_time),max(session_statistics.stat_time), groupnames.caption, session_statistics.session_id,groupnames.id FROM session_statistics,sessions,groupnames WHERE unix_timestamp(session_statistics.stat_time) > '$stat_start' AND unix_timestamp(session_statistics.stat_time) < '$stat_end' AND session_statistics.session_id=sessions.id AND sessions.user_id=$stat_uid AND session_statistics.zone_group_id=groupnames.id GROUP BY session_statistics.session_id, session_statistics.zone_group_id;";
 	};
 	//echo $query;
 	$res=$mysqli->query($query);
 	if ($res){
 		if ($business_mode){
-			$stats_table='<table><tr><th>входящий, МБ</th><th>Направление</th><th>Дата</th><th>номер сессии</th></tr>';
-			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.sprintf("%01.2f",$l[2]).'</td><td>'.$l[5].'</td><td>'.$l[3].'</td><td>'.$l[6].'</td></tr>';
+			$stats_table='<table><tr><th>входящий, МБ</th><th>Направление</th><th>Дата</th><th>номер сессии</th><th>график</th></tr>';
+			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.sprintf("%01.2f",$l[0]).'</td><td>'.$l[5].'</td><td>'.$l[3].'</td><td>'.$l[6].'</td><td><a href="graphs.php?sid='.$l[6].'&gid='.$l[7].'" target=blank>в новом окне</td></tr>';
 		}else{
-			$stats_table='<table><tr><th>входящий, МБ</th><th>исходящий, МБ</th><th>Снято со счета</th><th>Направление</th><th>Интервал</th><th>идентификатор сессии</th></tr>';
-			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.$l[0].'</td><td>'.$l[1].'</td><td>'.$l[2].'</td><td>'.$l[5].'</td><td>'.$l[3].' - '.$l[4].'</td><td>'.$l[6].'</td></tr>';
+			$stats_table='<table><tr><th>входящий, МБ</th><th>исходящий, МБ</th><th>Снято со счета</th><th>Направление</th><th>Интервал</th><th>идентификатор сессии</th><th>график</th></tr>';
+			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.$l[0].'</td><td>'.$l[1].'</td><td>'.$l[2].'</td><td>'.$l[5].'</td><td>'.$l[3].' - '.$l[4].'</td><td>'.$l[6].'</td><td><a href="graphs.php?sid='.$l[6].'&gid='.$l[7].'" target=blank>в новом окне</td></tr>';
+		};
+	};
+	$stats_table.='</table>';
+}else if ($stmode == 3){//per-user stats:
+	if ($business_mode){
+		$query="SELECT (sum(session_statistics.traf_in) div 104.8576)/10000, (sum(session_statistics.traf_out) div 104.8576)/10000, sum(session_statistics.traf_in_money), DATE_FORMAT(MIN(session_statistics.stat_time),'%d-%c-%Y'),max(session_statistics.stat_time), groupnames.caption, users.login,groupnames.id,users.id FROM session_statistics use index(timekey) ,sessions,groupnames,users WHERE session_statistics.stat_time > FROM_UNIXTIME('$stat_start') AND session_statistics.stat_time < FROM_UNIXTIME('$stat_end') AND session_statistics.session_id=sessions.id AND sessions.user_id=users.id AND session_statistics.zone_group_id=groupnames.id GROUP BY sessions.user_id, session_statistics.zone_group_id;";
+	}else{
+		$query="SELECT (sum(session_statistics.traf_in) div 104.8576)/10000, (sum(session_statistics.traf_out) div 104.8576)/10000, sum(session_statistics.traf_in_money), min(session_statistics.stat_time),max(session_statistics.stat_time), groupnames.caption, users.login,groupnames.id,users.id FROM session_statistics use index(timekey),sessions,groupnames,users WHERE session_statistics.stat_time > FROM_UNIXTIME('$stat_start') AND session_statistics.stat_time < FROM_UNIXTIME('$stat_end') AND session_statistics.session_id=sessions.id AND sessions.user_id=users.id AND AND session_statistics.zone_group_id=groupnames.id GROUP BY sessions.user_id, session_statistics.zone_group_id;";
+	};
+	//echo $query;
+	$res=$mysqli->query($query);
+	if ($res){
+		if ($business_mode){
+			$stats_table='<table><tr><th>входящий, МБ</th><th>Направление</th><th>Дата</th><th>пользователь</th><th>график</th></tr>';
+			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.sprintf("%01.2f",$l[0]).'</td><td>'.$l[5].'</td><td>'.$l[3].'</td><td>'.$l[6].'</td><td><a href="graphs.php?uid='.$l[8].'&gid='.$l[7].'&start='.$stat_start.'&end='.$stat_end.'" target=blank>в новом окне</td></tr>';
+		}else{
+			$stats_table='<table><tr><th>входящий, МБ</th><th>исходящий, МБ</th><th>Снято со счета</th><th>Направление</th><th>Интервал</th><th>пользователь</th><th>график</th></tr>';
+			while ($l=$res->fetch_row()) $stats_table.='<tr><td>'.$l[0].'</td><td>'.$l[1].'</td><td>'.$l[2].'</td><td>'.$l[5].'</td><td>'.$l[3].' - '.$l[4].'</td><td>'.$l[6].'</td><td><a href="graphs.php?uid='.$l[8].'&gid='.$l[7].'&start='.$stat_start.'&end='.$stat_end.'" target=blank>в новом окне</td></tr>';
 		};
 	};
 	$stats_table.='</table>';
