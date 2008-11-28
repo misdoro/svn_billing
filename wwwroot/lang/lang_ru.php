@@ -19,6 +19,7 @@ $lang['groupby']='Группировка:';
 $lang['group']['0']='Сводная статистика';
 $lang['group']['1']='Статистика по дням';
 $lang['group']['2']='Статистика по сессиям';
+$lang['group']['3']='Статистика по пользователям';
 $lang['traf_units']=array('','K','M','G');
 $lang['time_seconds']=array(1,60,3600,86400,2592000,31536000);
 $lang['time_units']=array('s','m','h','d','M','Y');

@@ -1,3 +1,8 @@
+R65:
+Added link to graphs into all reports in stats.php
+implemented summary reports in stats.php
+Slightly optimised queries in stats.php
+
 R64:
 Complete draft implementation of graphs.php
 Need to use FROM_UNIXTIME instead of UNIX_TIMESTAMP to speed up some queries.
