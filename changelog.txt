@@ -1,3 +1,7 @@
+R64:
+Complete draft implementation of graphs.php
+Need to use FROM_UNIXTIME instead of UNIX_TIMESTAMP to speed up some queries.
+
 R63:
 Basic implementation of per-session traffic graphs
 
