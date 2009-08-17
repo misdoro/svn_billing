@@ -26,7 +26,7 @@ $props['gid']=(int)$_GET['gid'];
 //Image dimensions:
 $props['width']=(int)$_GET['width'];
 $props['height']=(int)$_GET['height'];
-if (!$props['width']) $props['width']=640;
+if (!$props['width']) $props['width']=800;
 if (!$props['height']) $props['height']=480;
 
 $props['head_height']=10;

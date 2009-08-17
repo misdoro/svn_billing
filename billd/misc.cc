@@ -3,7 +3,7 @@
 
 pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void logmsg ( uint8_t flags, char* message, ...)
+void logmsg ( uint8_t flags, const char* message, ...)
 {
 	if ((flags & DBG_LOCKS && cfg.debug_locks) ||
 		(flags & DBG_EVENTS && cfg.debug_events) ||

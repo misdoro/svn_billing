@@ -43,7 +43,7 @@
 using namespace std;
 
 //netflow structures
-typedef struct pheader {
+struct pheader {
 	uint16_t pver;
 	uint16_t nflows;
 	uint32_t uptime;
@@ -55,7 +55,7 @@ typedef struct pheader {
 	uint16_t pad;
 };
 
-typedef struct flowrecord {
+struct flowrecord {
 	uint32_t srcaddr;
 	uint32_t dstaddr;
 	uint32_t nexthop;
@@ -79,7 +79,7 @@ typedef struct flowrecord {
 };
 
 //billing structures
-typedef struct zone_group {
+struct zone_group {
 	zone_group *next;
 	uint32_t id;
 	uint64_t in_bytes;
@@ -90,7 +90,7 @@ typedef struct zone_group {
 	double zone_mb_cost;
 };
 
-typedef struct user_zone {
+struct user_zone {
 	user_zone *next;
 	zone_group *group_ref;
 	uint32_t id;
@@ -102,7 +102,7 @@ typedef struct user_zone {
 	uint64_t zone_out_bytes;
 };
 
-typedef struct user {
+struct user {
 	user *next;
 	uint32_t id;
 	uint32_t bill_id;
@@ -125,7 +125,7 @@ typedef struct user {
 	host_node *hostport_tree;
 };
 
-typedef struct configuration {
+struct configuration {
 	//listeners configuration
 	uint16_t netflow_listen_port;
 	uint32_t netflow_listen_addr;
@@ -207,7 +207,7 @@ uint32_t ipFromStrToInt(const char *ipstr);
 user *onUserConnected(char *session_id, MYSQL *link);
 void onUserDisconnected(char *session_id);
 void removeUser(user * current_u);
-void logmsg ( uint8_t flags, char* message, ...);
+void logmsg ( uint8_t flags, const char* message, ...);
 user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr , uint32_t pstarttime, uint32_t pendtime);
 uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask);
 user_zone * getflowzone(user * curr_user, uint32_t dst_ip,uint16_t dst_port);

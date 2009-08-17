@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS `zone_groups` (
 	`group_id` int unsigned NOT NULL default '0',
 	`priority` smallint unsigned NOT NULL,
 	PRIMARY KEY  (`id`),
-	UNIQUE KEY `zone_id` (`zone_id`),
+	KEY `zone_id` (`zone_id`),
 	KEY `group_id` (`group_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `active` tinyint unsigned default '1',	/*Is user enabled or not for some reasons*/
   `debit` double NOT NULL default '0',	/*double precision*/
   `credit` decimal(11,2) NOT NULL default '0',						/*11 digit precision, fractional 2*/
+  `mlimit` decimal(11,2) NOT NULL default '0',                                          /*11 digit precision, fractional 2*/
   `parent` int(10) unsigned default NULL,
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;

@@ -123,7 +123,7 @@ if ($_POST['ajax']){
 		$uid=(int)$_POST['user'];
 		$password=filterit($_POST['password']);
 		if ($uid){
-			$query='update users set password='.$password.' where id='.$uid.';';
+			$query='update users set password=\''.$password.'\' where id='.$uid.';';
 			logquery($query,$mysqli);
 			$query='select id,login,INET_NTOA(user_ip),debit,credit,mlimit,active,parent from users where id='.$uid;
 			$res=$mysqli->query($query);
