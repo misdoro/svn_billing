@@ -6,7 +6,7 @@ Inspired by http://cslibrary.stanford.edu/110/BinaryTrees.html
 #ifndef TREE_H_INCLUDED
 #define TREE_H_INCLUDED
 
-typedef struct stat_record{
+struct stat_record{
 	uint32_t host;		//Peer host
 	uint16_t port;		//Peer port
 	uint32_t bytes_in;	//overall recieved bytes
@@ -17,13 +17,13 @@ typedef struct stat_record{
 	bool updated;		//Updated since last offload
 };
 
-typedef struct port_node {
+struct port_node {
 	stat_record* data;
 	struct port_node* left;
 	struct port_node* right;
 };
 
-typedef struct host_node {
+struct host_node {
 	port_node* port;
 	uint32_t host;				//Peer host
     struct host_node* left;
