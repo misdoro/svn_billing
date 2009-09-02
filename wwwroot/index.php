@@ -30,6 +30,7 @@ echo '<br><a href="stats.php">'.$lang['stats'].'</a>';
 if ($business_mode){ 
 	if ($_SESSION['is_admin']) echo '<br><a href="users.php">Все пользователи</a>';
 	if ($_SESSION['is_admin']) echo '<br><a href="sarg/">Подробная статистика по www траффику</a>';
+	if ($_SESSION['is_admin']) echo '<br><a href="zones.php">Редактирование зон траффика</a>';
 	if ($_SESSION['is_cash_admin']) echo '<br><a href="payment.php">Добавление траффика</a>';
 }else {
 	if ($_SESSION['is_cash_admin']) echo '<br><a href="payment.php">Зачисление платежей</a>';
