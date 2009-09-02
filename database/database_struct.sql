@@ -40,7 +40,7 @@ Table for session data:
 CREATE TABLE IF NOT EXISTS `sessions`	(
 	`id` int unsigned NOT NULL auto_increment,
 	`user_id` int unsigned NOT NULL default '0',	/*If user found in users table, save his ID, elsewhere save username*/
-	`user_name` varchar(255) NOT NULL default '',
+	`user_name` varchar(255) NULL default '',
 	`session_id` varchar(255) NOT NULL default '',
 	`nas_port` smallint unsigned NOT NULL default '0',
 	`nas_linkname` varchar(255) NOT NULL default '',	/*Used to drop users*/
