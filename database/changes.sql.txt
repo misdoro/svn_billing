@@ -22,3 +22,5 @@ CREATE TABLE IF NOT EXISTS `hostport_stat` (
   KEY `session_id` (`session_id`),
   key `net_key` (`host`,`port`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+alter table  sessions modify column user_name varchar(255) NULL default '';

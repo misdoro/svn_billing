@@ -11,6 +11,48 @@ if (($_SESSION['is_admin']!=true)){
 };
 
 
+//Syncing to LDAP directory,
+//select all usernames from tree,
+//select all usernames from mysql,
+//compare arrays,
+//add all unknown users to mysql users table
+if ($_GET['sync_ldap'] && $auth_mode=='ldap'){
+	//select all usernames from ldap tree,
+	$ds=ldap_connect($ldap_uri);
+	if ($ds){
+		if (ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3)) {
+					//echo "Using LDAPv3";
+		} else {
+						echo "Failed to set LDAP protocol version to 3";
+		}
+		$bind=ldap_bind($ds,$ldap_binddn,$ldap_bindpass);
+		if ($bind){
+			$ldap_fields=array("uid");
+			$filter='(uid=*)';
+			//echo $filter."<br>";
+			$sr = ldap_search($ds, $ldap_searchbase, $filter,$ldap_fields);
+			for($i=ldap_first_entry($ds,$sr);$i!=false;$i=ldap_next_entry($ds,$i))
+			{
+				//echo var_dump(ldap_get_values($ds,$i,'uid'));
+				$array=ldap_get_values($ds,$i,'uid');
+				$login=$array[0];
+				//echo $login;
+				//Try to insert new entries, only ones with non-existent login will succeed.
+				//$query='SELECT id,parent FROM users WHERE login="'..'"';
+				$query='insert into users (login,password,user_ip,active) select \''.$login.'\',\'\',0,0 from users where login=\''.$login.'\' having count(id)=0;';
+				$mysqli->query($query);
+				$query='insert into usergroups (user_id,group_id) select id,'.$mysqli->insert_id.' from groupnames';
+				$mysqli->query($query);
+			};
+		}else {
+			echo "Failed to bind LDAP!";
+		};
+	}else{
+		echo "Failed to connect to LDAP server!";
+	};
+};
+
+
 function getrow($l){
 	global $lang;
 	global $business_mode;
@@ -31,7 +73,9 @@ function getrow($l){
 		$ret.='<td nowrap>';
 		$ret.='<a href="stats.php?user='.$l[0].'">'.'<img src="img/stats.png"  border=0></img>'.'</a>';
 		$ret.='<a href="sarg/thismonth/">'.'<img src="img/www.png"  border=0></img>'.'</a>';
-		$ret.='<a href="javascript:askpassword('.$l[0].');">'.'<img src="img/password.png"  border=0></img>'.'</a>';
+		if ($auth_mode=='mysql')
+			$ret.='<a href="javascript:askpassword('.$l[0].');">'.'<img src="img/password.png"  border=0></img>'.'</a>';
+			
 		$ret.='&nbsp;&nbsp;';
 		$ret.='<a href="javascript:rmuser('.$l[0].');">'.'<img src="img/del.png" border=0></img>'.'</a>';
 		$ret.='</td>';
@@ -140,17 +184,30 @@ if ($_POST['ajax']){
 };
 
 //create table header
-		if ($business_mode) $users_table='<table id="userstable"><thead><tr><th>Логин</th><th>IP</th><th>Остаток, МБ</th><th>месячный лимит, МБ</th><th>активен</th><th><a href="javascript:adduser(0);">'.'<img src="img/add.png"  border=0></img>'.'</a></th></tr></thead><tbody>';
-else $users_table='<table id="userstable"><thead><tr><th>Логин</th><th>IP</th><th>Баланс, руб.</th><th>кредит, руб.</th><th>активен</th><th><a href="javascript:adduser(0);">'.'<img src="img/add.png"  border=0></img>'.'</a></th></tr></thead><tbody>';
+		if ($business_mode) $users_table='<table id="userstable"><thead><tr><th>Логин</th><th>IP</th><th>Остаток, МБ</th><th>месячный лимит, МБ</th><th>активен</th><th><a href="javascript:adduser(0);">'.'<img src="img/add.png"  border=0></img>'.'</a>';
+else $users_table='<table id="userstable"><thead><tr><th>Логин</th><th>IP</th><th>Баланс, руб.</th><th>кредит, руб.</th><th>активен</th><th><a href="javascript:adduser(0);">'.'<img src="img/add.png"  border=0></img>'.'</a>';
+//If using LDAP integration, add button to import users from LDAP directory. 
+if ($auth_mode=='ldap'){
+	$users_table.='<a href="users.php?sync_ldap=1">'.'<img src="img/load.png"  border=0></img>'.'</a>';
+};
+$users_table.='</th></tr></thead><tbody>';
 
 //Append users:
-$query='select id,login,INET_NTOA(user_ip),debit,credit,mlimit,active,parent from users order by login asc;';
+$query='select id,login,INET_NTOA(user_ip),debit,credit,mlimit,active,parent from users order by user_ip asc;';
 $res=$mysqli->query($query);
 while ($l=$res->fetch_row()){
 	$users_table.='<tr id="row'.$l[0].'">'.getrow($l).'</tr>';
 };
-if ($business_mode) $users_table.='</tbody><tfoot><tr><th>Логин</th><th>IP</th><th>Остаток, МБ</th><th>месячный лимит, МБ</th><th>активен</th><th><a href="javascript:adduser();">'.'<img src="img/add.png"  border=0></img>'.'</a></th></tr></tfoot></table>';
-else $users_table='</tbody><tfoot><tr><th>Логин</th><th>IP</th><th>Баланс, руб.</th><th>кредит, руб.</th><th>активен</th><th><a href="javascript:adduser(1);">'.'<img src="img/add.png"  border=0></img>'.'</a></th></tr></tfoot></table>';
+if ($business_mode) {
+	$users_table.='</tbody><tfoot><tr><th>Логин</th><th>IP</th><th>Остаток, МБ</th><th>месячный лимит, МБ</th><th>активен</th><th><a href="javascript:adduser();">'.'<img src="img/add.png"  border=0></img>'.'</a>';
+}else{
+	$users_table.='</tbody><tfoot><tr><th>Логин</th><th>IP</th><th>Баланс, руб.</th><th>кредит, руб.</th><th>активен</th><th><a href="javascript:adduser(1);">'.'<img src="img/add.png"  border=0></img>'.'</a>';
+};
+//If using LDAP integration, add button to import users from LDAP directory. 
+if ($auth_mode=='ldap'){
+	$users_table.='<a href="users.php?sync_ldap=1">'.'<img src="img/load.png"  border=0></img>'.'</a>';
+};
+$users_table.='</th></tr></tfoot></table>';
 ?>
 
 <html><head>
