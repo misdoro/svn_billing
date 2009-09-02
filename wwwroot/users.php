@@ -1,15 +1,7 @@
 <?
 require ('auth.php');
 
-if (($_SESSION['is_admin']!=true)){
-	echo '<html><head>';
-	echo '<Meta http-equiv="Content-type" content="Text/html;charset=utf-8">';
-	echo '</head><body>';
-	echo '<h1>Вам сюда нельзя...</h1>';
-	echo '</body></html>';
-	die();
-};
-
+check_admin();
 
 //Syncing to LDAP directory,
 //select all usernames from tree,
