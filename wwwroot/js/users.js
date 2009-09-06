@@ -80,7 +80,6 @@ function insertrow(data){
 		//tbody.removeChild(row);
 		//tbody.appendChild(row);
 		var rowid=row.cells[0].childNodes[0].value;
-	//alert(rowid);
 		row.id='row'+rowid;
 		addnew=0
 	};
@@ -91,20 +90,36 @@ function onReadyState(){
 	var data=null;
 	if (ready==READY_STATE_COMPLETE){
 		data=req.responseText;
-		insertrow(data);
+		if (data){
+		  insertrow(data);
+		}
 	}
 }
 
-/*function addrow(){
-
-	if (!editing){
-		editing=1;
-		newrow=document.createElement("tr");
-		tbody.insertBefore(newrow,tbody.rows[0]);
-
-		sendRequest("periodic.php",'ajax=1&editrow=0',"POST");
-	}else{
-		
-	};
+function modgroups(rowid){
+	row=document.getElementById("row"+rowid);
+	request="ajax=1&action=modgroups&user="+rowid;
+	sendRequest("users.php",request,"POST");
 }
-*/
+
+function reloadrow(rowid){
+	row=document.getElementById("row"+rowid);
+	request="ajax=1&action=getrow&user="+rowid;
+	sendRequest("users.php",request,"POST");
+}
+
+function savegroups(rowid){
+	grouplist=document.getElementById("groupsel");
+	row=document.getElementById("row"+rowid);
+	var request = "ajax=1&action=savegroups&user="+rowid;
+	var reccnt=0;
+	for (var i = 0; i < grouplist.length; i++) {
+		if (grouplist.options[i].selected) {
+			reccnt++;
+			request+="&gr"+reccnt+"=" + grouplist.options[i].value;
+		}
+	}
+	request+="&count="+reccnt;
+	sendRequest("users.php",request,"POST");
+}
+

@@ -1,3 +1,7 @@
+R70:
+Fixed bugs in users.php, implemented zones editing
+Created (lacking text index) structure for rejik integration
+
 R65:
 Added link to graphs into all reports in stats.php
 implemented summary reports in stats.php

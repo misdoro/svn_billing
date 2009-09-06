@@ -2,8 +2,8 @@
 $mysql_host='127.0.0.1';
 //$mysql_host='192.168.64.252';
 $mysql_port=3306;
-$mysql_user='billing';
-$mysql_password='billadm';
+$mysql_user='billadm';
+$mysql_password='billpasswd';
 $mysql_database='billing';
 $dbcharset='utf8';
 
@@ -31,7 +31,7 @@ $show_packs=false;
 ini_set("precision", 15);
 
 //Authentication mode
-$auth_mode='ldap';
+$auth_mode='mysql';
 /*Auth mode to use: 
 *	ldap - get user's password from OpenLDAP
 *	mysql - get password from the same table as users
