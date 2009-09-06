@@ -5,9 +5,7 @@ check_admin();
 
 //Syncing to LDAP directory,
 //select all usernames from tree,
-//select all usernames from mysql,
-//compare arrays,
-//add all unknown users to mysql users table
+//Try to add each to database, if succeeded, add 
 if ($_GET['sync_ldap'] && $auth_mode=='ldap'){
 	//select all usernames from ldap tree,
 	$ds=ldap_connect($ldap_uri);
@@ -33,8 +31,10 @@ if ($_GET['sync_ldap'] && $auth_mode=='ldap'){
 				//$query='SELECT id,parent FROM users WHERE login="'..'"';
 				$query='insert into users (login,password,user_ip,active) select \''.$login.'\',\'\',0,0 from users where login=\''.$login.'\' having count(id)=0;';
 				$mysqli->query($query);
-				$query='insert into usergroups (user_id,group_id) select id,'.$mysqli->insert_id.' from groupnames';
-				$mysqli->query($query);
+				if ($userid=$mysqli->insert_id){
+					$query='insert into usergroups (user_id,group_id) select id,'.$userid.' from groupnames';
+					$mysqli->query($query);
+				};
 			};
 		}else {
 			echo "Failed to bind LDAP!";
@@ -48,6 +48,7 @@ if ($_GET['sync_ldap'] && $auth_mode=='ldap'){
 function getrow($l){
 	global $lang;
 	global $business_mode;
+	global $auth_mode;
 	$ret='<td>';
 	if ($l[0]){
 		$ret.='<input type="hidden" value="'.$l[0].'" id="uid'.$l[0].'">';
@@ -67,7 +68,7 @@ function getrow($l){
 		$ret.='<a href="sarg/thismonth/">'.'<img src="img/www.png"  border=0></img>'.'</a>';
 		if ($auth_mode=='mysql')
 			$ret.='<a href="javascript:askpassword('.$l[0].');">'.'<img src="img/password.png"  border=0></img>'.'</a>';
-			
+		$ret.='<a href="javascript:modgroups('.$l[0].');">'.'<img src="img/zgroups.png"  border=0></img>'.'</a>';
 		$ret.='&nbsp;&nbsp;';
 		$ret.='<a href="javascript:rmuser('.$l[0].');">'.'<img src="img/del.png" border=0></img>'.'</a>';
 		$ret.='</td>';
@@ -94,8 +95,9 @@ function getrow($l){
 
 if ($_POST['ajax']){
 	header("Content-type: text/html; charset=utf-8");
-	if (isset($_POST['getrow'])){
-		$uid=(int)$_POST['getrow'];
+	//If we only need to refresh row
+	if ($_POST['action']=='getrow' || $_POST['action']=='savegroups'){
+		$uid=(int)$_POST['user'];
 		if ($uid){
 			$query='select id,login,INET_NTOA(user_ip),debit,credit,mlimit,active,parent from users where id='.$uid;
 			$res=$mysqli->query($query);
@@ -171,10 +173,51 @@ if ($_POST['ajax']){
 	if ($_POST['action']=='getemptyrow'){
 		echo getrow(array());
 	};
-	
+	//If we modify users's groups:
+	if ($_POST['action']=='modgroups'){
+		$uid=(int)$_POST['user'];
+		$query='SELECT id,login FROM users WHERE id='.$uid;
+		$res=$mysqli->query($query);
+		$l=$res->fetch_row();
+		$query='SELECT groupnames.id,groupnames.caption,usergroups.user_id FROM groupnames LEFT JOIN usergroups ON groupnames.id=usergroups.group_id AND usergroups.user_id='.$uid.' ORDER BY groupnames.caption';
+		$res1=$mysqli->query($query);
+		//Build custom table row:
+		$ret='<td>';
+		$ret.=$l[1];
+		$ret.='</td><td colspan=2>';
+		$ret.='Группы траффика: <SELECT	id="groupsel"	SIZE=5	MULTIPLE>';
+		while ($gr=$res1->fetch_row()){
+	      		$ret.='<OPTION VALUE=\''.$gr[0].'\' ';
+			if ($gr[2]) $ret.='SELECTED';
+			$ret.=' >'.$gr[1];
+		};
+		$ret.='</SELECT>';
+		$ret.='</td><td colspan=2>';
+		
+		
+		$ret.='</td><td nowrap>';
+		$ret.='<a href="javascript:savegroups('.$l[0].');">'.'<img src="img/ok.png"  border=0></img>'.'</a>';
+		$ret.='&nbsp;&nbsp;';
+		$ret.='<a href="javascript:reloadrow('.$l[0].');">'.'<img src="img/del.png" border=0></img>'.'</a>';
+		$ret.='</td>';
+		echo $ret;	
+	};
+	//If we are saving groups:
+	if ($_POST['action']=='savegroups'){
+		$uid=(int)$_POST['user'];
+		$count=(int)$_POST['count'];
+		$query='DELETE FROM usergroups WHERE user_id='.$uid;
+		$mysqli->query($query);
+		for ($i=1;$i<=$count;$i++){
+			if ($gid=(int)$_POST['gr'.$i]){
+				$query='INSERT INTO usergroups (user_id,group_id) values('.$uid.','.$gid.');';
+				$mysqli->query($query);
+			}
+		};
+		
+	};
 	die();
 };
-
 //create table header
 		if ($business_mode) $users_table='<table id="userstable"><thead><tr><th>Логин</th><th>IP</th><th>Остаток, МБ</th><th>месячный лимит, МБ</th><th>активен</th><th><a href="javascript:adduser(0);">'.'<img src="img/add.png"  border=0></img>'.'</a>';
 else $users_table='<table id="userstable"><thead><tr><th>Логин</th><th>IP</th><th>Баланс, руб.</th><th>кредит, руб.</th><th>активен</th><th><a href="javascript:adduser(0);">'.'<img src="img/add.png"  border=0></img>'.'</a>';

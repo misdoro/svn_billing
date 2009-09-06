@@ -100,7 +100,9 @@ CREATE TABLE IF NOT EXISTS `usergroups` (
   `id` int unsigned NOT NULL auto_increment,
   `user_id` int unsigned NOT NULL,
   `group_id` int unsigned NOT NULL,
-  PRIMARY KEY  (`id`)
+  PRIMARY KEY  (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `group_id` (`group_id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 /*

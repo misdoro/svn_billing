@@ -74,7 +74,7 @@ function savegroup(){
 	editlayer.style.visibility='hidden';
 	baselayer=document.getElementById('menu');
 	baselayer.style.visibility='visible';
-	//needreload=1;
+	needreload=1;
 	
 };
 
