@@ -155,26 +155,37 @@ if ($uin){
 	my $str;
 	while(my @row = $sth -> fetchrow_array) {
 		#user->server
-		if (!$fltno{@row[3].'u'}){
-			$fltno{@row[3].'u'}=++$fltnocnt;
+		if (@row[1] || @row[2]){
+			if (!$fltno{@row[3].'u'}){
+				$fltno{@row[3].'u'}=++$fltnocnt;
+			};
+			my $filter=$fltno{@row[3].'u'};
+			$str=$filter.'#'.(++$fltidx{$filter}).'=match ';
+			if (@row[1]){
+				$str.='dst net '.@row[0].'/'.@row[1];
+			};
+			if (@row[2]){
+				$str.=' and ' if @row[1];
+				$str.='dst port '.@row[2];
+			};
+			push(@mpdflt,$str);
 		};
-		my $filter=$fltno{@row[3].'u'};
-		$str=$filter.'#'.(++$fltidx{$filter}).'=match dst net '.@row[0].'/'.@row[1];
-		if (@row[2]){
-			 $str.=' and dst port '.@row[2];
-		};
-		push(@mpdflt,$str);
 		#server->user
-		if (!$fltno{@row[3].'d'}){
-			$fltno{@row[3].'d'}=++$fltnocnt;
+		if (@row[1] || @row[2]){
+			if (!$fltno{@row[3].'d'}){
+				$fltno{@row[3].'d'}=++$fltnocnt;
+			};
+			my $filter=$fltno{@row[3].'d'};
+			$str=$filter.'#'.(++$fltidx{$filter}).'=match ';		
+			if (@row[1]){
+				$str.='src net '.@row[0].'/'.@row[1];
+			};
+			if (@row[2]) {
+				$str.=' and ' if @row[1];
+				$str.='src port '.@row[2];
+			};
+			push(@mpdflt,$str);
 		};
-		my $filter=$fltno{@row[3].'d'};
-
-		$str=$filter.'#'.(++$fltidx{$filter}).'=match src net '.@row[0].'/'.@row[1];
-		if (@row[2]) {
-			$str.=' and src port '.@row[2];
-		};
-		push(@mpdflt,$str);
 	};
 	$sth->finish;
 
@@ -185,26 +196,35 @@ if ($uin){
 	my $in_idx=0;
 	my $out_idx=0;
 	my $limit;
+	my $str;
 	while(my @row = $sth -> fetchrow_array) {
 		# user->server
 		if (@row[1]) {
-			$limit=' shape '.(@row[1]*1024);
+			$limit=' shape '.(@row[1]*1024).' 4000 ';
 		} else {
 			$limit='';
 		};
-		push(@mpdlim,'in#'.++$in_idx.'=flt'.$fltno{@row[2].'u'}.$limit.' pass');
+		if ($fltno{@row[2].'u'}){
+			push(@mpdlim,'in#'.++$in_idx.'=flt'.$fltno{@row[2].'u'}.$limit.' pass');
+		}else {
+			push(@mpdlim,'in#'.++$in_idx.'=all '.$limit.' pass');
+		};
 		# server->user
 		if (@row[0]) {
-			$limit=' shape '.(@row[0]*1024);
+			$limit=' shape '.(@row[0]*1024).' 4000 ';
 		}else{
 			$limit='';
 		};
-                push(@mpdlim,'out#'.++$out_idx.'=flt'.$fltno{@row[2].'d'}.$limit.' pass');
+		if ($fltno{@row[2].'d'}){
+			push(@mpdlim,'out#'.++$out_idx.'=flt'.$fltno{@row[2].'d'}.$limit.' pass');
+		}else{
+			push(@mpdlim,'out#'.++$out_idx.'=all '.$limit.' pass');
+		};
 	};
 	$sth->finish;
 	#Last limit is deny
-	push(@mpdlim,'in#'.++$in_idx.'=all deny');
-	push(@mpdlim,'out#'.++$out_idx.'=all deny');
+#	push(@mpdlim,'in#'.++$in_idx.'=all deny');
+#	push(@mpdlim,'out#'.++$out_idx.'=all deny');
 
 	$RAD_REPLY{'mpd-limit'}=\@mpdlim;
 	$RAD_REPLY{'mpd-filter'}=\@mpdflt;
