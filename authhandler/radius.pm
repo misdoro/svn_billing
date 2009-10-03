@@ -51,7 +51,11 @@ my $db_user=$conf_hash{'mysql_username'};
 my $db_pass=$conf_hash{'mysql_password'};
 
 #Create LDAP object and try to bind with my details:
-my $ldap = Net::LDAP->new ( $ldap_server ) or die "$@";
+my $ldap = Net::LDAP->new ( $ldap_server );
+if (!$ldap){
+	&radiusd::radlog(1, $@);
+	return RLM_MODULE_REJECT;
+};
 my $mesg = $ldap->bind ( $ldap_binddn, password => $ldap_bindpass, version => 3 );
 
 my @Attrs = ('uid','userPassword' );               # request username,userpassword
@@ -83,9 +87,15 @@ if ($resp == 0) {
 #Check if user has enough money on account:
 my $query='select a.debit+a.credit, a.id, a.user_ip, a.active, a.parent, b.credit+ b.debit from users as a left join users as b on a.parent = b.id where a.login=? limit 1';
 	my $sth = $dbh->prepare($query);
-	my $rv = $sth->execute($uid) or die "can't execute the query:". $sth->errstr;
+	my $rv = $sth->execute($uid);
+	if ($rv==undef){
+		&radiusd::radlog(1,"can't execute the query $query:". $sth->errstr);
+		$ldap->unbind;
+		$dbh->disconnect;
+		return RLM_MODULE_REJECT;
+	};
 	($money,$uin,$ipnum,$is_active,$parent,$parent_money)=$sth->fetchrow_array;
-	
+	$sth->finish;
 	if (($money < 0 && !$parent) || ($parent && $parent_money < 0)) {
 		$resp=1;
 		$RAD_REPLY{'Reply-Message'}='Not enough money on account, sorry :(';
@@ -93,14 +103,14 @@ my $query='select a.debit+a.credit, a.id, a.user_ip, a.active, a.parent, b.credi
 	if (!$uin){
 		$resp=1;
 		$RAD_REPLY{'Reply-Message'}='Sorry, user not found in MYSQL database! :(';
-};
+	};
 	if ($ipnum){
 		$RAD_REPLY{'Framed-IP-Address'}=dectoip($ipnum);
-};
+	};
 	if (($is_active eq '0') && ($resp == 1)){
 		$resp=1;
 		$RAD_REPLY{'Reply-Message'}='Sorry, user is disabled in MySQL database! :(';
-};
+	};
 };
 
 #Create session record in database (Inserting sessions only with found user_id, but possibly wrong password)
@@ -108,15 +118,89 @@ my $query='insert into sessions (user_id,user_name,session_id,nas_port,nas_linkn
 my $sth = $dbh->prepare($query);
 my $sess_state=0;
 $sess_state=1 if ($resp == 0);
-#$sth->execute($uin,$uid,$RAD_REQUEST{'Acct-Session-Id'},$RAD_REQUEST{'Nas-Port'},$RAD_REQUEST{'Link'},iptodec($RAD_REQUEST{'Peer-Addr'}),mactodec($RAD_REQUEST{'Peer-Mac-Addr'}),$RAD_REQUEST{'Peer-Ident'},$sess_state) or die "can't execute the query:". $sth->errstr;
-$sth->execute($uin,$uid,$RAD_REQUEST{'Acct-Session-Id'},$RAD_REQUEST{'NAS-Port'},'pptp_link-'.$RAD_REQUEST{'NAS-Port'},iptodec($RAD_REQUEST{'Calling-Station-Id'}),0,$RAD_REQUEST{'Calling-Station-Id'},$sess_state) or die "can't execute the query:". $sth->errstr;
+my $rv=$sth->execute($uin,$uid,$RAD_REQUEST{'Acct-Session-Id'},$RAD_REQUEST{'NAS-Port'},'pptp_link-'.$RAD_REQUEST{'NAS-Port'},iptodec($RAD_REQUEST{'Calling-Station-Id'}),0,$RAD_REQUEST{'Calling-Station-Id'},$sess_state);
+#if ($rv==undef){
+#	&radiusd::radlog(1,"can't execute the query $query:'. $sth->errstr);
+#	$ldap->unbind;
+#	$dbh->disconnect;
+#	return RLM_MODULE_REJECT;
+#};
 
-$ldap->unbind;
-$dbh->disconnect;
 if ($resp == 1) {
+	$ldap->unbind;
+	$dbh->disconnect;
 	return RLM_MODULE_REJECT;
 };
 
+###############
+# Traffic shaping:
+###############
+#Query for users price
+
+if ($uin){
+	my @mpdflt;
+	my @mpdlim;
+	my $query='SELECT inet_ntoa(a.`ip`), a.`mask`, a.`dstport`, p.`group_id` FROM allzones a, zone_groups g, price_groups p, users u where u.active_price=p.price_id and g.group_id=p.group_id and u.id=? and g.zone_id=a.id order by g.priority desc';
+	my $sth = $dbh->prepare($query);
+	my $rv = $sth->execute($uin);
+#	if ($rv==undef) {
+#		&radiusd::radlog(1,'can\'t execute the query '.$query.':'. $sth->errstr);
+#		$ldap->unbind;
+#		$dbh->disconnect;
+#		return RLM_MODULE_REJECT;
+#	};
+	my %fltidx;
+	my $str;
+	while(my @row = $sth -> fetchrow_array) {
+		#user->server
+		$str=(@row[3]*2).'#'.(++$fltidx{(@row[3]*2)}).'=match dst net '.@row[0].'/'.@row[1];
+		if (@row[2]){
+			 $str.=' and dst port '.@row[2];
+		};
+		push(@mpdflt,$str);
+		#server->user
+		$str=(@row[3]*2+1).'#'.(++$fltidx{(@row[3]*2+1)}).'=match src net '.@row[0].'/'.@row[1];
+		if (@row[2]) {
+			$str.=' and src port '.@row[2];
+		};
+		push(@mpdflt,$str);
+	};
+	$sth->finish;
+
+	my $query='SELECT p.bw_in, p.bw_out, p.group_id, p.priority FROM price_groups p, users u where u.active_price=p.price_id and u.id=? order by p.priority desc';
+	my $sth = $dbh->prepare($query);
+	my $rv = $sth->execute($uin);
+
+	my $in_idx=0;
+	my $out_idx=0;
+	my $limit;
+	while(my @row = $sth -> fetchrow_array) {
+		# user->server
+		if (@row[1]) {
+			$limit=' shape '.(@row[1]*1024);
+		} else {
+			$limit='';
+		};
+		push(@mpdlim,'in#'.++$in_idx.'=flt'.(@row[2]*2).$limit.' pass');
+		# server->user
+		if (@row[0]) {
+			$limit=' shape '.(@row[0]*1024);
+		}else{
+			$limit='';
+		};
+                push(@mpdlim,'out#'.++$out_idx.'=flt'.(@row[2]*2+1).$limit.' pass');
+	};
+	$sth->finish;
+	#Last limit is deny
+	push(@mpdlim,'in#'.++$in_idx.'=all deny');
+	push(@mpdlim,'out#'.++$out_idx.'=all deny');
+
+	$RAD_REPLY{'mpd-limit'}=\@mpdlim;
+	$RAD_REPLY{'mpd-filter'}=\@mpdflt;
+
+};
+$ldap->unbind;
+$dbh->disconnect;
 return RLM_MODULE_OK;
 }
 
@@ -166,6 +250,8 @@ my $dbh = DBI->connect("DBI:mysql:$db_name:$db_host:$db_port", $db_user, $db_pas
 #If connecting:
 if ($RAD_REQUEST{'Acct-Status-Type'} eq 'Start') 
 {
+	
+
 	#Update session with user's current peer IP (for netflow), set it's state as connected:
 	my $query='update sessions set ppp_ip=?,state=2 where session_id=? and user_name=? and state=1';
 	my $sth = $dbh->prepare($query);
