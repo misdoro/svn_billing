@@ -1,10 +1,10 @@
 <?
-$mysql_host='127.0.0.1';
-//$mysql_host='192.168.64.252';
+//$mysql_host='127.0.0.1';
+$mysql_host='192.168.64.252';
 $mysql_port=3306;
 $mysql_user='billing';
 $mysql_password='billadm';
-$mysql_database='billing';
+$mysql_database='billing_t';
 $dbcharset='utf8';
 
 $ldap_uri='192.168.64.252';
