@@ -150,16 +150,27 @@ if ($uin){
 #		return RLM_MODULE_REJECT;
 #	};
 	my %fltidx;
+	my %fltno=undef;
+	my $fltnocnt=0;
 	my $str;
 	while(my @row = $sth -> fetchrow_array) {
 		#user->server
-		$str=(@row[3]*2).'#'.(++$fltidx{(@row[3]*2)}).'=match dst net '.@row[0].'/'.@row[1];
+		if (!$fltno{@row[3].'u'}){
+			$fltno{@row[3].'u'}=++$fltnocnt;
+		};
+		my $filter=$fltno{@row[3].'u'};
+		$str=$filter.'#'.(++$fltidx{$filter}).'=match dst net '.@row[0].'/'.@row[1];
 		if (@row[2]){
 			 $str.=' and dst port '.@row[2];
 		};
 		push(@mpdflt,$str);
 		#server->user
-		$str=(@row[3]*2+1).'#'.(++$fltidx{(@row[3]*2+1)}).'=match src net '.@row[0].'/'.@row[1];
+		if (!$fltno{@row[3].'d'}){
+			$fltno{@row[3].'d'}=++$fltnocnt;
+		};
+		my $filter=$fltno{@row[3].'d'};
+
+		$str=$filter.'#'.(++$fltidx{$filter}).'=match src net '.@row[0].'/'.@row[1];
 		if (@row[2]) {
 			$str.=' and src port '.@row[2];
 		};
@@ -181,14 +192,14 @@ if ($uin){
 		} else {
 			$limit='';
 		};
-		push(@mpdlim,'in#'.++$in_idx.'=flt'.(@row[2]*2).$limit.' pass');
+		push(@mpdlim,'in#'.++$in_idx.'=flt'.$fltno{@row[2].'u'}.$limit.' pass');
 		# server->user
 		if (@row[0]) {
 			$limit=' shape '.(@row[0]*1024);
 		}else{
 			$limit='';
 		};
-                push(@mpdlim,'out#'.++$out_idx.'=flt'.(@row[2]*2+1).$limit.' pass');
+                push(@mpdlim,'out#'.++$out_idx.'=flt'.$fltno{@row[2].'d'}.$limit.' pass');
 	};
 	$sth->finish;
 	#Last limit is deny
