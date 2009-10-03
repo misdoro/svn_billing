@@ -128,7 +128,7 @@ void removeUser(user * current_u)
 	}
 	//delete all user's host-port data stats:
 	fs_deleteTree(current_u->hostport_tree);
-	logmsg(DBG_EVENTS,"Removing user %i...", current_u->id);
+	logmsg(DBG_EVENTS,"Removing user %i, session %s.", current_u->id,current_u->verbose_session_id.c_str());
 	//remove user
 	if (firstuser == current_u) {
 		user *previous_u = firstuser;
