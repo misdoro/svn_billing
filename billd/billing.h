@@ -35,8 +35,8 @@
 #include <errno.h>
 #include <sys/uio.h>
 #include <unistd.h>
+#include "Config.h"
 
-#include "ConfigFile.h"
 #include "tree.h"
 #define MB_LENGTH 1048576
 
@@ -125,57 +125,6 @@ struct user {
 	host_node *hostport_tree;
 };
 
-struct configuration {
-	//listeners configuration
-	uint16_t netflow_listen_port;
-	uint32_t netflow_listen_addr;
-	uint16_t netflow_source_port;
-	uint32_t netflow_source_addr;
-	uint16_t netflow_timeout;
-	uint16_t events_listen_port;
-	uint32_t events_listen_addr;
-	uint16_t events_source_port;
-	uint32_t events_source_addr;
-	uint16_t events_timeout;
-	uint16_t events_threads;
-	struct sockaddr_in events_addr;
-	//Here we connect to drop users
-	uint16_t mpd_shell_port;
-	string mpd_shell_addr;
-	string mpd_shell_user;
-	string mpd_shell_pass;
-	//MySql configuration
-	string mysql_server;
-	uint16_t mysql_port;
-	string mysql_username;
-	string mysql_password;
-	string mysql_database;
-	//terminate application
-	bool stayalive;
-	//put stats into DB
-	uint32_t stats_updated_time;
-	uint32_t stats_update_interval;
-	//host-port flow stats updates:
-	uint32_t fs_updated_time;
-	uint32_t fs_update_interval;
-	//to remove disconnnected users
-	uint32_t die_time_interval;
-	bool debug_locks;
-	bool debug_netflow;
-	bool debug_offload;
-	bool debug_events;
-	bool debug_threads;
-	bool debug_hpstat;
-	bool verbose_daemonize;
-	bool do_fork;
-	bool appendlogs;
-	bool log_date;
-	string logfile;
-	string pidfile;
-	string lockfile;
-	string user;
-	string workingdir;
-};
 #define DBG_LOCKS 1
 #define DBG_NETFLOW 2
 #define DBG_OFFLOAD 4
@@ -186,7 +135,7 @@ struct configuration {
 #define DBG_ALWAYS 128
 
 extern user *firstuser;
-extern configuration cfg;
+extern Config cfg;
 extern pthread_mutex_t users_table_m;
 extern pthread_mutex_t mysql_mutex;
 

@@ -14,7 +14,7 @@ int ntr;
 int getucsocket( void ) {
 	int rc = 1, listensocket;
 	if( ( listensocket = socket( AF_INET, SOCK_STREAM, 0 ) ) == -1 )
-		logmsg(DBG_EVENTS, "create stream socket on %s, port %i failed", ipFromIntToStr(cfg.events_listen_addr), cfg.events_listen_port );
+		logmsg(DBG_EVENTS, "create stream socket on %s, port %i failed", inet_ntoa(cfg.events_listen_addr), cfg.events_listen_port );
 	if( setsockopt( listensocket, SOL_SOCKET, SO_REUSEADDR, &rc, sizeof( rc ) ) != 0 )
 		logmsg(DBG_EVENTS, "set socket option SO_REUSEADDR failed" );
 	//Set socket timeout:
@@ -27,9 +27,9 @@ int getucsocket( void ) {
 	//addr.sin_len = sizeof( addr );
 	cfg.events_addr.sin_family = AF_INET;
 	cfg.events_addr.sin_port = htons( cfg.events_listen_port );
-	cfg.events_addr.sin_addr.s_addr = htonl( cfg.events_listen_addr );
+	cfg.events_addr.sin_addr.s_addr = cfg.events_listen_addr.s_addr;
 	if( bind( listensocket, (struct sockaddr *)&cfg.events_addr, sizeof( cfg.events_addr ) ) != 0 )
-		logmsg(DBG_EVENTS, "bind socket on %s, port %i  failed", ipFromIntToStr(cfg.events_listen_addr), cfg.events_listen_port);
+		logmsg(DBG_EVENTS, "bind socket on %s, port %i  failed", inet_ntoa(cfg.events_listen_addr), cfg.events_listen_port);
 	//fcntl(ls, F_SETFL, 0);
 	if( listen( listensocket, 5 ) != 0 ) printf( "E:put socket in listen state failed\n" );
 	return listensocket;

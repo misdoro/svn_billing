@@ -5,6 +5,7 @@ pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void logmsg ( uint8_t flags, const char* message, ...)
 {
+	//Check if logging category enabled:
 	if ((flags & DBG_LOCKS && cfg.debug_locks) ||
 		(flags & DBG_EVENTS && cfg.debug_events) ||
 		(flags & DBG_NETFLOW && cfg.debug_netflow) ||
@@ -21,6 +22,30 @@ void logmsg ( uint8_t flags, const char* message, ...)
 			char buf[50];
 			strftime(buf,50, "%c", localtime ( &rawtime ));
 			cout << buf << ": " ;
+		};
+		switch (flags) {
+			case DBG_LOCKS:
+				cout<< "Locks     :";
+			break;
+			case DBG_EVENTS:
+				cout<< "Events    :";
+			break;
+			case DBG_NETFLOW:
+				cout<< "NetFlow   :";
+			break;
+			case DBG_OFFLOAD:
+				cout<< "Stats     :";
+			break;
+			case DBG_DAEMON:
+				cout<< "Daemon    :";
+			break;
+			case DBG_THREADS:
+				cout<< "Threads   :";
+			break;
+			case DBG_HPSTAT:
+				cout<< "Det.stats :";
+			break;
+				cout<< "Debug     :";
 		};
 		va_list args;
 		va_start (args, message);
@@ -264,7 +289,7 @@ user *onUserConnected(char *session_id, MYSQL * link)
 		for (p = newuser->first_zone_group; (p->next != NULL && p->id != zone_group_id); p = p->next);
 		newzone->group_ref = p;
 
-		newzone->zone_ip = atoll(row[2]);
+		newzone->zone_ip = strtoul(row[2],NULL,10);
 		newzone->zone_mask = atoi(row[3]);
 		newzone->zone_dstport = atoi(row[4]);
 		newzone->zone_in_bytes = 0;

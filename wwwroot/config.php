@@ -1,10 +1,10 @@
 <?
-//$mysql_host='127.0.0.1';
-$mysql_host='192.168.64.252';
+$mysql_host='127.0.0.1';
+//$mysql_host='192.168.64.252';
 $mysql_port=3306;
 $mysql_user='billing';
 $mysql_password='billadm';
-$mysql_database='billing_t';
+$mysql_database='billing';
 $dbcharset='utf8';
 
 $ldap_uri='192.168.64.252';
@@ -22,7 +22,7 @@ $cash_admins=array('misdoro','flexx');
 
 
 //Business mode makes it look like all price units are in MB etc
-$business_mode=0;
+$business_mode=1;
 
 //Show traffic packs
 $show_packs=false;

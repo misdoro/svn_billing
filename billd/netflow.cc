@@ -75,7 +75,7 @@ void * netflowlistener(void *threadid)
 	length = sizeof(server);
 	bzero(&server, length);
 	server.sin_family = AF_INET;
-	server.sin_addr.s_addr = htonl(cfg.netflow_listen_addr);
+	server.sin_addr.s_addr = cfg.netflow_listen_addr.s_addr;
 	server.sin_port = htons(cfg.netflow_listen_port);
 	//Define timeouts for rcvfrom
 	timeval tv;
@@ -97,12 +97,12 @@ void * netflowlistener(void *threadid)
 		n = recvfrom(sock, buf, 1470, 0, (struct sockaddr *)&from, &fromlen);
 		if (n < 0 && errno!=EAGAIN) logmsg(DBG_NETFLOW,"Error receiving netflow datagram");
 		else if (n<0 &&	errno==EAGAIN ){	//Recvfrom exited by timeout, necessary to exit properly
-			logmsg(DBG_NETFLOW,"Netflow listener timeout");
+			logmsg(DBG_NETFLOW,"listener timeout");
 			continue;
 		};
 		if (fillhdr(packet, buf)) {
 			continue;
-			//message("recieved malformed datagram from")
+			logmsg(DBG_NETFLOW,"recieved malformed datagram");
 		}
 		else
 		{
