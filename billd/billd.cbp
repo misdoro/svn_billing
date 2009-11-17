@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="billd" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Release">
+				<Option output="bin/Release/billd" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add library="mysqlclient_r" />
+					<Add library="pthread" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="Config.cpp" />
+		<Unit filename="Config.h" />
+		<Unit filename="ConfigFile.cpp" />
+		<Unit filename="ConfigFile.h" />
+		<Unit filename="billing.cc" />
+		<Unit filename="billing.h" />
+		<Unit filename="daemonize.cc" />
+		<Unit filename="misc.cc" />
+		<Unit filename="mysql.cc" />
+		<Unit filename="nas.cpp" />
+		<Unit filename="nas.h" />
+		<Unit filename="naslist.cpp" />
+		<Unit filename="naslist.h" />
+		<Unit filename="netflow.cc" />
+		<Unit filename="tree.cc" />
+		<Unit filename="tree.h" />
+		<Unit filename="userconnect.cc" />
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

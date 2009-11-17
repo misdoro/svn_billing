@@ -1,0 +1,96 @@
+# depslib dependency file v1.0
+1256405024 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/Config.cpp
+	"billing.h"
+
+1258493116 /home/doronin/Projects/Cpp/billing/svn-src/billd/billing.h
+	<arpa/inet.h>
+	<cstring>
+	<fcntl.h>
+	<iostream>
+	<map>
+	<math.h>
+	<mysql/mysql.h>
+	<netdb.h>
+	<netinet/in.h>
+	<pthread.h>
+	<pwd.h>
+	<set>
+	<signal.h>
+	<stdarg.h>
+	<string.h>
+	<strings.h>
+	<stdio.h>
+	<stdlib.h>
+	<endian.h>
+	<machine/endian.h>
+	<sys/file.h>
+	<sys/socket.h>
+	<sys/stat.h>
+	<sys/time.h>
+	<sys/types.h>
+	<errno.h>
+	<sys/uio.h>
+	<unistd.h>
+	<limits.h>
+	"user.h"
+	"nas.h"
+	"naslist.h"
+	"Config.h"
+	"tree.h"
+	"nas.h"
+	"naslist.h"
+
+1257347100 /home/doronin/Projects/Cpp/billing/svn-src/billd/Config.h
+	"ConfigFile.h"
+	<netinet/in.h>
+	<arpa/inet.h>
+	<sys/socket.h>
+
+1258477943 /home/doronin/Projects/Cpp/billing/svn-src/billd/ConfigFile.h
+	<string>
+	<map>
+	<iostream>
+	<fstream>
+	<sstream>
+
+1250536354 /home/doronin/Projects/Cpp/billing/svn-src/billd/tree.h
+
+1258496285 /home/doronin/Projects/Cpp/billing/svn-src/billd/nas.h
+
+1258496107 /home/doronin/Projects/Cpp/billing/svn-src/billd/naslist.h
+
+1206690183 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/ConfigFile.cpp
+	"ConfigFile.h"
+
+1258488220 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/billing.cc
+	"billing.h"
+
+1210796694 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/daemonize.cc
+	"billing.h"
+
+1257368230 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/misc.cc
+	"billing.h"
+
+1212360223 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/mysql.cc
+	"billing.h"
+
+1258497522 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/nas.cpp
+	"billing.h"
+
+1258497630 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/naslist.cpp
+	"billing.h"
+
+1256404176 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/netflow.cc
+	"billing.h"
+
+1212828468 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/tree.cc
+	"billing.h"
+
+1258491417 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/userconnect.cc
+	"billing.h"
+
+1258497172 /home/doronin/Projects/Cpp/billing/svn-src/billd/user.h
+
+1258497193 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/user.cpp
+	"billing.h"
+

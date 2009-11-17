@@ -66,6 +66,7 @@ class Config {
 
 	bool readconfig(const char*);
 
+
 };
 
 #endif // CONFIG_H_INCLUDED

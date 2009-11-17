@@ -37,7 +37,7 @@ int getucsocket( void ) {
 
 void datahandler(int connectSocket, MYSQL * mysqllink){
 	//Read data from connection, handle connecting and disconnecting users:
-	int recivied = 0, rsize = 0;
+	int recieved = 0, rsize = 0;
 	char * buffer = NULL;
 	char buf[1024];
 	for (;;) {
@@ -45,29 +45,25 @@ void datahandler(int connectSocket, MYSQL * mysqllink){
 		if (rsize <= 0) {
 			break;
 		}
-		buffer = (char*) realloc(buffer, recivied + rsize);
-		memcpy(buffer+recivied, &buf[0], rsize);
-		recivied += rsize;
+		buffer = (char*) realloc(buffer, recieved + rsize);
+		memcpy(buffer+recieved, &buf[0], rsize);
+		recieved += rsize;
 	}
 	shutdown(connectSocket, 2);
 	close(connectSocket);
 	if (buffer != NULL) {
-		//Received data to buffer
-		buffer = (char*) realloc(buffer, recivied + 1);
-		char null = '\0';
-		memcpy(buffer+recivied, &null, 1);
-		int start = 0, pos = 0;
-		int step = 0, conn_mode = 0;
-		char * user_ip = NULL, * user_name = NULL, * session_id = NULL, *link_name = NULL;
-		for (char * p = buffer; (strncmp(p, "\0",1) != 0); p++) {
-			if (strncmp(p, "\n",1) == 0) {
-				char * str = new char[pos-start+1];
-				memcpy(str, p-pos+start, pos-start);
-				memcpy(str+pos-start, &null ,1);
-				p++;
+
+		int start = 0, step = 0, conn_mode = 0;
+		char * p = buffer;
+		for (int i=0; i<recieved ; i++) {
+			if (*(p+i)==0x0a) {
+				char * str = new char[i-start+1];
+				memcpy(str, p+start, i-start);
+				memset(str+i-start, '\0' ,1);
 				switch (step) {
-					// get action
-					case 0: if (strcmp(str, "connect") == 0) {
+					//Check event type
+					case 0:
+						if (strcmp(str, "connect") == 0) {
 							logmsg(DBG_EVENTS,"Some connected!");
 							step = 1;
 							conn_mode = CONNECT;
@@ -76,48 +72,28 @@ void datahandler(int connectSocket, MYSQL * mysqllink){
 							step = 1;
 							conn_mode = DISCONNECT;
 						} else {
-							logmsg(DBG_EVENTS,"Warning: Invalid data received (%s)!", str);
+							logmsg(DBG_EVENTS,"Warning: Invalid data recieved (%s)!", str);
 							step = -10;
 						}
 						break;
-					// connect :: username
-					case 1: user_name = new char[strlen(str)+1];
-						strcpy(user_name, str);
-						step++;
-					break;
-					// connect :: session_id
-					case 2:
-						session_id = new char[strlen(str)+1];
+					//Get session ID and go on with it:
+					case 1:
+						char *session_id = new char[strlen(str)+1];
 						strcpy(session_id, str);
 						step++;
-					break;
-					// connect :: ip_address
-					case 3:
-						user_ip = new char[strlen(str)+1];
-						strcpy(user_ip, str);
-						step++;
-					break;
-					// connect :: ip address
-					case 4: link_name = new char[strlen(str)+1];
-						strcpy(link_name, str);
-						step++;
-						logmsg(DBG_EVENTS,"Username: '%s' User ip: '%s' Session id: '%s' Link name: '%s'", user_name, user_ip, session_id, link_name);
+						logmsg(DBG_EVENTS,"Session id: '%s'", session_id);
 						if (conn_mode == CONNECT) {
-							onUserConnected(session_id,mysqllink);
+							nases.UserConnected(session_id);
 						}
 						if (conn_mode == DISCONNECT) {
-							onUserDisconnected(session_id);
+							nases.UserDisconnected(session_id);
 						}
-						if (user_ip != NULL) delete user_ip; user_ip = NULL;
-						if (user_name != NULL) delete user_name; user_name = NULL;
-						if (session_id != NULL) delete session_id; session_id = NULL;
-						if (link_name != NULL) delete link_name; link_name = NULL;
+						delete session_id;
 					break;
 				}
 				delete str;
-				start = pos;
+				start = i+1;
 			}
-			pos++;
 		}
 		free(buffer);
 	}
@@ -138,7 +114,7 @@ void* ucsconn_handler ( void* ps ) {
 		rs = accept( sc, (struct sockaddr *) &client, &fromlen );
 		if (rs < 0 && errno!=EAGAIN) logmsg(DBG_EVENTS,"Error accepting" );
 		else if (rs<0 &&	errno==EAGAIN ){	//Recvfrom exited by timeout, necessary to exit properly
-			logmsg(DBG_EVENTS,"Accept timeout, nothing special");
+			//logmsg(DBG_EVENTS,"Accept timeout, nothing special");
 			continue;
 		}else datahandler( rs, my_link );
 	};
@@ -173,4 +149,5 @@ void * userconnectlistener (void *threadid) {
 	logmsg(DBG_THREADS,"userconnectlistener has quit");
     pthread_exit (NULL);
 };
+
 

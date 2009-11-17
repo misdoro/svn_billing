@@ -78,18 +78,18 @@ user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr, uint32_t pstarttime, ui
 
 int verbose_mutex_lock(pthread_mutex_t *mutex){
 	int res = pthread_mutex_trylock(mutex);
-	if (res==0)	logmsg(DBG_LOCKS,"%s %i","lock and go ",mutex);
+	if (res==0)	logmsg(DBG_LOCKS,"lock and go %i",mutex);
 	else{
 		pthread_mutex_lock(mutex);
-		logmsg(DBG_LOCKS,"%s %i","lock and wait ",mutex);
+		logmsg(DBG_LOCKS,"lock and wait %i",mutex);
 	};
 	return res;
 };
 
 int verbose_mutex_unlock(pthread_mutex_t *mutex){
 	int res=pthread_mutex_unlock(mutex);
-	if (res==0) logmsg(DBG_LOCKS,"%s %i","unlocked ",mutex);
-	else logmsg(DBG_LOCKS,"%s %i","was not locked ",mutex);
+	if (res==0) logmsg(DBG_LOCKS,"unlocked %i",mutex);
+	else logmsg(DBG_ALWAYS,"was not locked %i",mutex);
 	return res;
 };
 

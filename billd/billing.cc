@@ -16,6 +16,11 @@ user * firstuser;
 // configuration
 Config cfg;
 
+//NAS List (top object to all users)
+NASList nases;
+
+//all mutexes are inside their classes
+
 // need to close all files, kill threads e.t.c.
 void end_me (int sig) {
 	logmsg(DBG_ALWAYS,"Terminating application...");
@@ -31,6 +36,7 @@ int main(int argc, char** argv) {
 	config_paths[1]="/usr/local/etc/billd.conf";
 	config_paths[2]="/usr/local/billing/conf/billd.conf";
 	while (!cfg.readconfig(config_paths[i++])){}
+
 	//Init MySQL library:
 	my_init();
 //	makeDBready();
@@ -43,6 +49,12 @@ int main(int argc, char** argv) {
 	signal(SIGTERM, end_me);
 	signal(SIGINT, end_me);
 	signal(SIGPIPE, SIG_IGN);
+
+	//Load NAS list from MySQL server
+
+	logmsg(DBG_ALWAYS,"loaded %i nases",nases.load());
+	//Start NAS connectlistener thread
+
 
 // here - start threads
 	pthread_t threads[4];

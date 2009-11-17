@@ -10,12 +10,14 @@
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
+#include <map>
 #include <math.h>
 #include <mysql/mysql.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <pwd.h>	//uid_t etc
+#include <set>
 #include <signal.h>
 #include <stdarg.h>
 #include <string.h>
@@ -35,9 +37,21 @@
 #include <errno.h>
 #include <sys/uio.h>
 #include <unistd.h>
+
+#include <limits.h> //strtoull
+
+#include "user.h"
+#include "nas.h"
+#include "naslist.h"
+
 #include "Config.h"
 
 #include "tree.h"
+
+//#include "user.h"
+#include "nas.h"
+#include "naslist.h"
+
 #define MB_LENGTH 1048576
 
 using namespace std;
@@ -107,7 +121,6 @@ struct user {
 	uint32_t id;
 	uint32_t bill_id;
 	uint32_t user_ip;
-	//uint32_t user_ip_digit;
 	double user_debit;
 	double user_debit_diff;
 	double user_credit;
@@ -136,8 +149,10 @@ struct user {
 
 extern user *firstuser;
 extern Config cfg;
+extern NASList nases;
 extern pthread_mutex_t users_table_m;
 extern pthread_mutex_t mysql_mutex;
+
 
 //userconnect.cc
 void *userconnectlistener(void *threadid);
