@@ -5,29 +5,6 @@ Inspired by http://cslibrary.stanford.edu/110/BinaryTrees.html
 #include "billing.h"
 
 /*
- Given a binary tree, return pointer to a node
- with the target data. Recurs
- down the tree, chooses the left or right
- branch by comparing the target to each node.
-*/
-/*
-host_node * fs_lookup(host_node* node, uint32_t host) {
-	// 1. Base case == empty tree
-	// in that case, the target is not found so return false
-	if (node == NULL) {
-		return(NULL);
-	}else {
-		// 2. see if found here
-		if (host == node->host) return(node);
-		else {
-			// 3. otherwise recur down the correct subtree
-			if (host < node->host) return(fs_lookup(node->left, host));
-			else return(fs_lookup(node->right, host));
-		}
-	}
-}
-*/
-/*
  Helper function that allocates a new node
  with the given data and NULL left and right
  pointers.

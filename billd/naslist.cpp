@@ -12,6 +12,8 @@ NASList::NASList (){
 	list_mutex = mutex;
 	pthread_mutex_t	mutex1 = PTHREAD_MUTEX_INITIALIZER;
 	id_mutex = mutex1;
+	pthread_mutex_t	mutex2 = PTHREAD_MUTEX_INITIALIZER;
+	userSidMutex = mutex2;
 }
 
 uint32_t NASList::load(){
@@ -62,14 +64,33 @@ C_NAS* NASList::getById (uint32_t id){
 
 void NASList::UserConnected(char* sessionid){
 	logmsg(DBG_EVENTS,"Called connect function with session %s.",sessionid);
-	//Get session data
-	C_user* newuser = new C_user(sessionid);
+	//Connect to MySQL:
+	MYSQL *sqllink = connectdb();
+	//Create user, fill him with session data
+	C_user* newuser = new C_user(sessionid,sqllink);
+	//Load zones and groups
+	newuser->load(sqllink);
+	//Disconnect MySQL
+	mysql_close(sqllink);
 	//add user to NAS lists
-	C_NAS* hisnas = nases.getById(newuser->getNASId());
-	hisnas->add_user(newuser);
-
+	nases.getById(newuser->getNASId())->add_user(newuser);
+	//add user to SID map
+	verbose_mutex_lock(&userSidMutex);
+	usersBySID[newuser->getSID()]=newuser;
+	verbose_mutex_unlock(&userSidMutex);
 };
 
 void NASList::UserDisconnected(char* sessionid){
 	logmsg(DBG_ALWAYS,"Called disconnect function with session %s.",sessionid);
+	//Create user, fill him with session data:
+	C_user* newuser = new C_user(sessionid);
+	verbose_mutex_lock(&userSidMutex);
+	C_user* myuser = usersBySID[newuser->getSID()];
+	verbose_mutex_unlock(&userSidMutex);
+	delete newuser;
+	if (myuser!=NULL){
+		myuser->userDisconnected();
+	}
+
+
 };
