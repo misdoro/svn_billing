@@ -85,7 +85,7 @@ my $dbh = DBI->connect("DBI:mysql:$db_name:$db_host:$db_port", $db_user, $db_pas
 my ($money,$uin,$ipnum,$is_active,$parent,$parent_money)=undef;
 if ($resp == 0) {
 #Check if user has enough money on account:
-my $query='select a.debit+a.credit, a.id, a.user_ip, a.active, a.parent, b.credit+ b.debit from users as a left join users as b on a.parent = b.id where a.login=? limit 1';
+my $query='select a.debit+a.credit, a.id, INET_NTOA(a.user_ip), a.active, a.parent, b.credit+ b.debit from users as a left join users as b on a.parent = b.id where a.login=? limit 1';
 	my $sth = $dbh->prepare($query);
 	my $rv = $sth->execute($uid);
 	if ($rv==undef){
@@ -105,7 +105,7 @@ my $query='select a.debit+a.credit, a.id, a.user_ip, a.active, a.parent, b.credi
 		$RAD_REPLY{'Reply-Message'}='Sorry, user not found in MYSQL database! :(';
 	};
 	if ($ipnum){
-		$RAD_REPLY{'Framed-IP-Address'}=dectoip($ipnum);
+		$RAD_REPLY{'Framed-IP-Address'}=$ipnum;
 	};
 	if (($is_active eq '0') && ($resp == 1)){
 		$resp=1;
@@ -114,17 +114,17 @@ my $query='select a.debit+a.credit, a.id, a.user_ip, a.active, a.parent, b.credi
 };
 
 #Create session record in database (Inserting sessions only with found user_id, but possibly wrong password)
-my $query='insert into sessions (user_id,user_name,session_id,nas_port,nas_linkname,called_ip,called_mac,called_ident,state) values(?,?,?,?,?,?,?,?,?)';
+my $query='insert into sessions (user_id,user_name,session_id,nas_port,nas_linkname,called_ip,called_ident,state) values(?,?,?,?,?,INET_ATON(?),?,?)';
 my $sth = $dbh->prepare($query);
 my $sess_state=0;
 $sess_state=1 if ($resp == 0);
-my $rv=$sth->execute($uin,$uid,$RAD_REQUEST{'Acct-Session-Id'},$RAD_REQUEST{'NAS-Port'},'pptp_link-'.$RAD_REQUEST{'NAS-Port'},iptodec($RAD_REQUEST{'Calling-Station-Id'}),0,$RAD_REQUEST{'Calling-Station-Id'},$sess_state);
-#if ($rv==undef){
-#	&radiusd::radlog(1,"can't execute the query $query:'. $sth->errstr);
-#	$ldap->unbind;
-#	$dbh->disconnect;
-#	return RLM_MODULE_REJECT;
-#};
+my $rv=$sth->execute($uin,$uid,$RAD_REQUEST{'Acct-Unique-Session-Id'},$RAD_REQUEST{'NAS-Port'},$RAD_REQUEST{'mpd-link'},$RAD_REQUEST{'Tunnel-Client-Endpoint'},$RAD_REQUEST{'Calling-Station-Id'},$sess_state);
+if ($rv==undef){
+	&radiusd::radlog(1,"can't execute the query $query:".$sth->errstr);
+	$ldap->unbind;
+	$dbh->disconnect;
+	return RLM_MODULE_REJECT;
+};
 
 if ($resp == 1) {
 	$ldap->unbind;
@@ -143,12 +143,12 @@ if ($uin){
 	my $query='SELECT inet_ntoa(a.`ip`), a.`mask`, a.`dstport`, p.`group_id` FROM allzones a, zone_groups g, price_groups p, users u where u.active_price=p.price_id and g.group_id=p.group_id and u.id=? and g.zone_id=a.id order by g.priority desc';
 	my $sth = $dbh->prepare($query);
 	my $rv = $sth->execute($uin);
-#	if ($rv==undef) {
-#		&radiusd::radlog(1,'can\'t execute the query '.$query.':'. $sth->errstr);
-#		$ldap->unbind;
-#		$dbh->disconnect;
-#		return RLM_MODULE_REJECT;
-#	};
+	if ($rv==undef) {
+		&radiusd::radlog(1,'can\'t execute the query '.$query.':'. $sth->errstr);
+		$ldap->unbind;
+		$dbh->disconnect;
+		return RLM_MODULE_REJECT;
+	};
 	my %fltidx;
 	my %fltno=undef;
 	my $fltnocnt=0;
@@ -256,14 +256,13 @@ sub preacct {
 # Function to handle accounting
 sub accounting {
 # For debugging purposes only
-       &log_request_attributes;
-
-# You can call another subroutine from here
-#       &test_call;
-my $event_host="127.0.0.1";
-my $event_port="10203";
+	&log_request_attributes;
 
 my (%conf_hash) =readconf();
+
+#Socket options:
+my $event_host=$conf_hash{'event_host'};;
+my $event_port=$conf_hash{'event_port'};
 
 #MySQL options:
 my $db_name=$conf_hash{'mysql_database'};
@@ -284,10 +283,10 @@ if ($RAD_REQUEST{'Acct-Status-Type'} eq 'Start')
 	
 
 	#Update session with user's current peer IP (for netflow), set it's state as connected:
-	my $query='update sessions set ppp_ip=?,state=2 where session_id=? and user_name=? and state=1';
+	my $query='update sessions set ppp_ip=inet_ATON(?),nas_id=(select id from naslist where identifier=?),state=2 where session_id=? and user_name=? and state=1';
 	my $sth = $dbh->prepare($query);
-	my $rv = $sth->execute(iptodec($RAD_REQUEST{'Framed-IP-Address'}),$RAD_REQUEST{'Acct-Session-Id'},$uid) or die "can't execute the query:". $sth->errstr;
-#	&radiusd::radlog(1, "update sessions set ppp_ip='".iptodec($RAD_REQUEST{'Framed-Ip-Address'}.',state=2 where session_id='.$RAD_REQUEST{'Acct-Session-Id'}.' and user_name='.$uid );
+	my $rv = $sth->execute($RAD_REQUEST{'Framed-IP-Address'},$RAD_REQUEST{'NAS-Identifier'},$RAD_REQUEST{'Acct-Unique-Session-Id'},$uid);
+
 	#Tell billd that user is connected:
 	my $socket = IO::Socket::INET->new(PeerAddr => $event_host, 
 		PeerPort => $event_port, 
@@ -295,15 +294,7 @@ if ($RAD_REQUEST{'Acct-Status-Type'} eq 'Start')
 		Type => SOCK_STREAM);
 	if ($socket){
 	        print $socket "connect\n";
-#		&radiusd::radlog(1, "connect");
-		print $socket $RAD_REQUEST{'User-Name'}."\n";
-#		&radiusd::radlog(1,$RAD_REQUEST{'User-Name'});
-		print $socket $RAD_REQUEST{'Acct-Session-Id'}."\n";
-#		&radiusd::radlog(1,$RAD_REQUEST{'Acct-Session-Id'});
-		print $socket $RAD_REQUEST{'Framed-IP-Address'}."\n";
-#		&radiusd::radlog(1,$RAD_REQUEST{'Framed-IP-Address'});
-		print $socket 'pptp_link-'.$RAD_REQUEST{'NAS-Port'}."\n";
-#		&radiusd::radlog(1,'pptp_link-'.$RAD_REQUEST{'NAS-Port'});
+		print $socket $RAD_REQUEST{'Acct-Unique-Session-Id'}."\n";
 		print $socket "\n";
 		close($socket);
 	};
@@ -311,9 +302,9 @@ if ($RAD_REQUEST{'Acct-Status-Type'} eq 'Start')
 elsif ($RAD_REQUEST{'Acct-Status-Type'} eq 'Stop')
 {
 	#Update session state, end time:
-        my $query='update sessions set state=3,sess_end=CURRENT_TIMESTAMP where session_id=? and user_name=? and state=2';
+        my $query='update sessions set state=3,sess_end=CURRENT_TIMESTAMP where session_id=?';
         my $sth = $dbh->prepare($query);
-        my $rv = $sth->execute($RAD_REQUEST{'Acct-Session-Id'},$uid) or die "can't execute the query:". $sth->errstr;
+        my $rv = $sth->execute($RAD_REQUEST{'Acct-Unique-Session-Id'});
 
 	#Tell billd that user is disconnected:
 	my $socket = IO::Socket::INET->new(PeerAddr => $event_host,
@@ -322,10 +313,7 @@ elsif ($RAD_REQUEST{'Acct-Status-Type'} eq 'Stop')
                 Type => SOCK_STREAM);
 	if ($socket){
 		print $socket "disconnect\n";
-		print $socket $RAD_REQUEST{'User-Name'}."\n";
-		print $socket $RAD_REQUEST{'Acct-Session-Id'}."\n";
-		print $socket $RAD_REQUEST{'Framed-IP-Address'}."\n";
-		print $socket 'pptp_link-'.$RAD_REQUEST{'NAS-Port'}."\n";
+		print $socket $RAD_REQUEST{'Acct-Unique-Session-Id'}."\n";
 		print $socket "\n";
 		close($socket);
 	};
@@ -422,38 +410,6 @@ sub readconf {
 	return %conf_hash;
 }
 
-#Convert IP to 4-byte number
-sub iptodec{
-	my $ip=@_[0];
-	my @octets = split(/\./, $ip);
-	return ( $octets[0]*1 << 24 )+($octets[1]*1 << 16)+($octets[2]*1 << 8)+($octets[3]);
-}
-
-#Convert IP to 4-byte number
-sub dectoip{
-        my $num=@_[0];
-	my	$d = $num % 256; $num -= $d; $num /= 256;
-	my $c = $num % 256; $num -= $c; $num /= 256;
-	my $b = $num % 256; $num -= $b; $num /= 256;
-	my $a = $num;
-	return "$a.$b.$c.$d";
-}
-
-#Convert MAC address to 6-byte number:
-sub mactodec{
-	my $mac=@_[0];
-	my @octets = split(/:/, $mac);
-	my $mac_num = 0;
-	
-	foreach my $octet (@octets)
-{	
-		$octet=hex($octet);
-		$mac_num <<= 8;
-		$mac_num |= $octet;
-}
-	return $mac_num;
-}
-
 sub LDAPsearch
 {
    my ($ldap,$searchString,$attrs,$base) = @_;
@@ -476,15 +432,12 @@ sub LDAPsearch
 
 };
 
-sub test_call {
-# Some code goes here
-}
 
 sub log_request_attributes {
 # This shouldn't be done in production environments!
 # This is only meant for debugging!
-       for (keys %RAD_REQUEST) {
-               &radiusd::radlog(1, "RAD_REQUEST: $_ = $RAD_REQUEST{$_}");
-}
+	for (keys %RAD_REQUEST) {
+		&radiusd::radlog(1, "RAD_REQUEST: $_ = $RAD_REQUEST{$_}");
+	};
 }
  
