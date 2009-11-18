@@ -85,8 +85,8 @@ void * netflowlistener(void *threadid)
 	//Create vars for packet data
 	pheader * packet = new pheader;
 	flowrecord *records = new flowrecord[30];
-	user *currentuser;
-	uint8_t flow_direction;
+	user *currentuser=NULL;
+	int8_t flow_direction=-1;
 	uint32_t dst_ip;
 	uint16_t dst_port;
 	user_zone *currentzone;
@@ -118,27 +118,48 @@ void * netflowlistener(void *threadid)
 			//flow_sequence
 			logmsg(DBG_NETFLOW,"First flow sequence: %u", packet->seq);
 
+			//Get NAS:
+			logmsg(DBG_NETFLOW,"NAS SOURCE ADDRESS: %s, port %i",inet_ntoa(from.sin_addr),ntohs(from.sin_port));
+			C_NAS* thisnas = nases.getbyport(ntohs(from.sin_port));
 			//Calculate NAS start time:
-			uint32_t nasstart=(packet->time - packet->uptime/1000);
+			//uint32_t nasstart=(packet->time - packet->uptime/1000);
 			//Fill in packet data
 			for (n = 0; n < packet->nflows; n++) {
 				fillflow(&(records[n]), buf + 24 + n * 48);
-				uint32_t starttime=records[n].starttime/1000+nasstart;
-				uint32_t endtime=records[n].endtime/1000+nasstart;
-				verbose_mutex_lock(&users_table_m);//Lock all users while searching
-				currentuser = getuserbyip(records[n].srcaddr, records[n].dstaddr, starttime, endtime);
-				logmsg (DBG_NETFLOW,"srcaddr %s, dstaddr %s, starttime %u, endtime %u, time %u",ipFromIntToStr(records[n].srcaddr),ipFromIntToStr(records[n].dstaddr),starttime, endtime, time(NULL));
-				verbose_mutex_unlock(&users_table_m);//Unlock them when done
+				//uint32_t starttime=records[n].starttime/1000+nasstart;
+				//uint32_t endtime=records[n].endtime/1000+nasstart;
+				C_user* thisuser;
+				//Get user by flow IP:
+				if ((thisuser = thisnas->getUserByIP(records[n].srcaddr,records[n].starttime,records[n].endtime))!=NULL){
+					dst_ip 	 = records[n].dstaddr;
+					dst_port = records[n].dstport;
+					flow_direction = 0;
+				}else if ((thisuser = thisnas->getUserByIP(records[n].dstaddr,records[n].starttime,records[n].endtime))!=NULL){
+					dst_ip 	 = records[n].srcaddr;
+					dst_port = records[n].srcport;
+					flow_direction = 1;
+				}else{
+					logmsg (DBG_NETFLOW,"IP not found: srcaddr %s, dstaddr %s,",ipFromIntToStr(records[n].srcaddr),ipFromIntToStr(records[n].dstaddr));
+					flow_direction = -1;
+					continue;
+				};
+
+				//Save flow data
+				if (flow_direction>=0){
+					if (thisuser->updateTraffic(dst_ip,dst_port,records[n].bytecount,flow_direction)){
+						logmsg(DBG_NETFLOW,"Record %i: session %u",packet->seq+n, thisuser->getSID());
+					}else{
+						logmsg(DBG_NETFLOW,"Warning! Zone not found! (sid: %u, srcaddr: %s, dstaddr %s)", thisuser->getSID(), ipFromIntToStr(records[n].srcaddr), ipFromIntToStr(records[n].dstaddr));
+					};
+				};
 
 				if (currentuser != NULL) {
 					logmsg(DBG_NETFLOW,"Got user %i",currentuser->session_id);
 					verbose_mutex_lock(&(currentuser->user_mutex));
 					//Get flow direction(0->out, 1->in)
-					dst_ip = (records[n].srcaddr == currentuser->user_ip ? records[n].dstaddr : records[n].srcaddr);
-					dst_port = (records[n].srcaddr == currentuser->user_ip ? records[n].dstport : records[n].srcport);
-					flow_direction = (records[n].srcaddr == currentuser->user_ip ? 0 : 1);
 					//Store per-zone stats:
 					currentzone = getflowzone(currentuser, dst_ip, dst_port);
+
 					if (currentzone != NULL) {
 						if (flow_direction == 0)
 						{

@@ -20,6 +20,7 @@ class C_NAS {
 		uint16_t getFlowSrcPort(void);
 		uint32_t getId(void);
 		void add_user(C_user*);
+		C_user* getUserByIP(uint32_t,uint32_t,uint32_t);
 
 //		void dropUser(&C_user);
 };

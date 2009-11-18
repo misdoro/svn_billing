@@ -5,10 +5,12 @@ class NASList{
 	private:
 		pthread_mutex_t list_mutex;
 		pthread_mutex_t id_mutex;
+		pthread_mutex_t userSidMutex;
 		std::map<uint16_t,C_NAS*> naslist;
 		std::map<uint16_t,C_NAS*>::iterator nasit;
 		std::map<uint32_t,C_NAS*> listById;
 		std::map<uint32_t,C_NAS*>::iterator listByIdIt;
+		std::map<uint32_t,C_user*> usersBySID;
 		MYSQL *sqllink;
 
 	public:

@@ -41,6 +41,8 @@
 		<Unit filename="netflow.cc" />
 		<Unit filename="tree.cc" />
 		<Unit filename="tree.h" />
+		<Unit filename="user.cpp" />
+		<Unit filename="user.h" />
 		<Unit filename="userconnect.cc" />
 		<Extensions>
 			<code_completion />

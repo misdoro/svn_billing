@@ -11,6 +11,8 @@
 #include <fcntl.h>
 #include <iostream>
 #include <map>
+#include <list>
+
 #include <math.h>
 #include <mysql/mysql.h>
 #include <netdb.h>
