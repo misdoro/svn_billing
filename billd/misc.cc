@@ -93,47 +93,22 @@ int verbose_mutex_unlock(pthread_mutex_t *mutex){
 	return res;
 };
 
-//shift given ip number by mask bits:
-uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask)
-{
-	if (mask == 0) return 0;
-	return unmasked_ip >> (32 - mask);
+MYSQL * connectdb () {
+	MYSQL *lnk;
+	lnk = mysql_init(NULL);
+	lnk = mysql_real_connect(lnk, cfg.mysql_server.c_str(),
+					cfg.mysql_username.c_str(),
+					cfg.mysql_password.c_str(),
+					cfg.mysql_database.c_str(),
+					cfg.mysql_port, NULL, 0);
+	//enable auto-reconnect feature
+	my_bool reconnect = 1;
+	mysql_options(lnk, MYSQL_OPT_RECONNECT, &reconnect);
+	logmsg(DBG_ALWAYS,"MySQL is thread-safe: %i",mysql_thread_safe());
+	return lnk;
 }
 
-//Get pointer to matching zone:
-user_zone * getflowzone(user * curr_user, uint32_t dst_ip,uint16_t dst_port)
-{
-	uint32_t dst_ip_masked;
-	uint32_t zone_ip_masked;
-	uint32_t sc=0;
-	for (user_zone * p = curr_user->first_user_zone; (p != NULL); p = p->next) {
-		dst_ip_masked = mask_ip(dst_ip, p->zone_mask);
-		zone_ip_masked = mask_ip(p->zone_ip, p->zone_mask);
-		if ((dst_ip_masked == zone_ip_masked) && ((p->zone_dstport==0)||(p->zone_dstport==dst_port))) {
-			logmsg(DBG_NETFLOW,"Found zone (%i) for user %i (ip %s, port %i) in %i steps :( ",
-			p->zone_dstport,curr_user->id,ipFromIntToStr(dst_ip),dst_port,sc);
-			return p;
-		}
-		sc++;
-	}
-	logmsg(DBG_NETFLOW," zone not found for user %i (ip %s) in %i steps :( ",curr_user->id,ipFromIntToStr(dst_ip),sc);
-	return NULL;
-}
-
-void addUser(user * u)
-{
-	if (firstuser == NULL) {
-		firstuser = u;
-		firstuser->next = NULL;
-		return;
-	}
-	user *p;
-	for (p = firstuser; (p->next != NULL); p = p->next);
-	u->next = NULL;
-	p->next = u;
-}
-
-void removeUser(user * current_u)
+/*void removeUser(user * current_u)
 {
 	pthread_mutex_t *this_user_mutex=&(current_u->user_mutex);
 	verbose_mutex_lock (this_user_mutex);
@@ -176,26 +151,24 @@ void removeUser(user * current_u)
 	verbose_mutex_unlock (this_user_mutex);
 	pthread_mutex_destroy (this_user_mutex);
 }
-
+*/
 char *ipFromIntToStr(uint32_t ip)
 {
 	in_addr a;
 	a.s_addr = htonl(ip);
-	/*char *addr = inet_ntoa(a);
-	char *myaddr = new char[strlen(addr) + 1];
-	strcpy(myaddr, addr);
-	return myaddr;*///Memory leak is here, some not thread-safe solution:
 	return inet_ntoa(a);
 }
 
+/*
 uint32_t ipFromStrToInt(const char *ipstr)
 {
 	in_addr a;
 	inet_aton(ipstr,&a);
 	return ntohl(a.s_addr);
 }
+*/
 
-void onUserDisconnected(char *session_id)
+/*void onUserDisconnected(char *session_id)
 {
 	user * current_u = NULL;
 	uint8_t user_found = 0;
@@ -273,7 +246,8 @@ void * dropUser(void * userstr){
 	};
 	pthread_exit(NULL);
 }
-
+*/
+/*
 int disconnect_user (user * drophim){
         verbose_mutex_lock(&(drophim->user_mutex));
         int state=0;
@@ -285,6 +259,6 @@ int disconnect_user (user * drophim){
         verbose_mutex_unlock(&(drophim->user_mutex));
 	return state;
 };
-
+*/
 
 

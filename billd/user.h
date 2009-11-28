@@ -1,5 +1,6 @@
 #ifndef USER_H_INCLUDED
 #define USER_H_INCLUDED
+#include "billing.h"
 
 class C_user{
 	private:
@@ -38,14 +39,20 @@ class C_user{
 
 		std::list<zone*> zones;
 		std::map<uint32_t,zone_group*> groups;
-		std::map<uint32_t,zone_group*>::iterator groupIt;
-		/*Don't need mutexes cause modifying only upon creation, before
-		* user becomes accessible to stats updating threads.
-		*/
+
+        rwLock zgstatlock;  //Stats update lock
+
 		void loadgroups(MYSQL*);
 		void getsession(char*,MYSQL*);
 		void loadzones(MYSQL*);
 		void init_mutex(void);
+
+		//Those to separate later to netflow class, netflow related functions
+		void* getFlowZone(uint32_t,uint16_t);                   //Get flow zone for selected host and port
+		void updateGroupTraffic(zone_group*,uint32_t,int8_t);   //Update traffic details for selected zone group.
+		uint32_t mask_ip(uint32_t, uint8_t);                    //mask IP according to mask.
+
+
 	public:
 		C_user(char* sessionid);
 		C_user(char* sessionid,MYSQL*);
@@ -54,7 +61,11 @@ class C_user{
 		uint32_t getNASId(void);
 		uint32_t getSID(void);
 		uint32_t getIP(void);
+
 		bool updateTraffic(uint32_t,uint16_t,uint32_t,int8_t);
+
+		void updateStats(MYSQL*);
+
 		void userDisconnected();
 		int droupser();
 };

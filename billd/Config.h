@@ -41,7 +41,6 @@ class Config {
 	//terminate application
 	bool stayalive;
 	//put stats into DB
-	uint32_t stats_updated_time;
 	uint32_t stats_update_interval;
 	//host-port flow stats updates:
 	uint32_t fs_updated_time;

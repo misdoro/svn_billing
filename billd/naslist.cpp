@@ -67,6 +67,18 @@ C_NAS* NASList::getbyport (uint16_t port){
     };
 }
 
+/*C_NAS* NASList::getBySockAddr(sockaddr_in source){
+    std::map<sockaddr_in,C_NAS*>::iterator saddrit;
+    saddrit = listBySockaddr.find(source);
+    logmsg(DBG_NETFLOW,"got iterator");
+	C_NAS* mynas=saddrit->second;
+	if (mynas==NULL){
+        logmsg(DBG_NETFLOW,"NULL pointer");
+	    return NULL;
+	}else
+	return mynas;
+}*/
+
 C_NAS* NASList::getById (uint32_t id){
     std::map<uint32_t,C_NAS*>::iterator listByIdIt;
 	listByIdIt=listById.find(id);
@@ -94,7 +106,7 @@ void NASList::UserConnected(char* sessionid){
 	verbose_mutex_lock(&userSidMutex);
 	usersBySID[newuser->getSID()]=newuser;
 	verbose_mutex_unlock(&userSidMutex);
-};
+}
 
 void NASList::UserDisconnected(char* sessionid){
 	logmsg(DBG_ALWAYS,"Called disconnect function with session %s.",sessionid);
@@ -107,6 +119,6 @@ void NASList::UserDisconnected(char* sessionid){
 	if (myuser!=NULL){
 		myuser->userDisconnected();
 	}
+}
 
 
-};
