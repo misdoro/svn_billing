@@ -39,6 +39,8 @@
 		<Unit filename="naslist.cpp" />
 		<Unit filename="naslist.h" />
 		<Unit filename="netflow.cc" />
+		<Unit filename="rwLock.cpp" />
+		<Unit filename="rwLock.h" />
 		<Unit filename="tree.cc" />
 		<Unit filename="tree.h" />
 		<Unit filename="user.cpp" />
