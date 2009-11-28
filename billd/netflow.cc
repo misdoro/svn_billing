@@ -121,23 +121,29 @@ void * netflowlistener(void *threadid)
 			//Get NAS:
 			logmsg(DBG_NETFLOW,"NAS SOURCE ADDRESS: %s, port %i",inet_ntoa(from.sin_addr),ntohs(from.sin_port));
 			C_NAS* thisnas = nases.getbyport(ntohs(from.sin_port));
+			if (thisnas == NULL){
+			    logmsg(DBG_NETFLOW,"NAS not found in list.\n");
+			}else{
+			    const char* nasname=thisnas->getName();
+			    logmsg(DBG_NETFLOW,"NAS found\n");
+			    logmsg(DBG_NETFLOW,"NAS name %s\n",nasname);
 			//Calculate NAS start time:
 			//uint32_t nasstart=(packet->time - packet->uptime/1000);
 			//Fill in packet data
-			for (n = 0; n < packet->nflows; n++) {
-				fillflow(&(records[n]), buf + 24 + n * 48);
-				//uint32_t starttime=records[n].starttime/1000+nasstart;
-				//uint32_t endtime=records[n].endtime/1000+nasstart;
-				C_user* thisuser;
-				//Get user by flow IP:
-				if ((thisuser = thisnas->getUserByIP(records[n].srcaddr,records[n].starttime,records[n].endtime))!=NULL){
-					dst_ip 	 = records[n].dstaddr;
-					dst_port = records[n].dstport;
-					flow_direction = 0;
-				}else if ((thisuser = thisnas->getUserByIP(records[n].dstaddr,records[n].starttime,records[n].endtime))!=NULL){
-					dst_ip 	 = records[n].srcaddr;
-					dst_port = records[n].srcport;
-					flow_direction = 1;
+                for (n = 0; n < packet->nflows; n++) {
+                    fillflow(&(records[n]), buf + 24 + n * 48);
+                    //uint32_t starttime=records[n].starttime/1000+nasstart;
+                    //uint32_t endtime=records[n].endtime/1000+nasstart;
+                    C_user* thisuser;
+                    //Get user by flow IP:
+                    if ((thisuser = thisnas->getUserByIP(records[n].srcaddr,records[n].starttime,records[n].endtime))!=NULL){
+                        dst_ip 	 = records[n].dstaddr;
+                        dst_port = records[n].dstport;
+                        flow_direction = 0;
+                    }else if ((thisuser = thisnas->getUserByIP(records[n].dstaddr,records[n].starttime,records[n].endtime))!=NULL){
+                        dst_ip 	 = records[n].srcaddr;
+                        dst_port = records[n].srcport;
+                        flow_direction = 1;
 				}else{
 					logmsg (DBG_NETFLOW,"IP not found: srcaddr %s, dstaddr %s,",ipFromIntToStr(records[n].srcaddr),ipFromIntToStr(records[n].dstaddr));
 					flow_direction = -1;
@@ -171,46 +177,47 @@ void * netflowlistener(void *threadid)
 						else if (flow_direction == 1)
 						{
 							currentzone->group_ref->in_bytes += records[n].bytecount;
-							currentzone->group_ref->in_diff += records[n].bytecount;
-							currentzone->group_ref->group_changed = 1;
-							currentzone->zone_in_bytes += records[n].bytecount;
-						}
-						logmsg(DBG_NETFLOW,"Record %i: session %i, in: %lu, out: %lu",packet->seq+n,currentuser->session_id,currentzone->group_ref->in_bytes,currentzone->group_ref->out_bytes);
-					} else {
-						logmsg(DBG_NETFLOW,"Warning! Zone not found! (uid: %u, srcaddr: %s, dstaddr %s)", currentuser->id, ipFromIntToStr(records[n].srcaddr), ipFromIntToStr(records[n].dstaddr));
-					};
-					//Store per-host-port stats:
-					//Construct new record:
-					stat_record * stat_r = new stat_record;
-					if (flow_direction == 0)
-					{
-						stat_r->bytes_out=records[n].bytecount;
-						stat_r->bytes_in=0;
-						stat_r->packets_out=records[n].pktcount;
-						stat_r->packets_in=0;
-					}
-					else if (flow_direction == 1)
-					{
-						stat_r->bytes_in=records[n].bytecount;
-						stat_r->bytes_out=0;
-						stat_r->packets_out=0;
-						stat_r->packets_in=records[n].pktcount;
-					};
-					stat_r->host=dst_ip;
-					stat_r->port=dst_port;
-					stat_r->new_rec=true;
-					stat_r->updated=true;
-					//Store record in tree:
-					host_node * stat_result=fs_update(currentuser->hostport_tree,dst_ip,stat_r, NULL);
-					//If just started tree and got it from fs_update, attach it to user, otherwise keep tree head (or empty, which is error)
-					if ((stat_result != NULL) &&  (currentuser->hostport_tree == NULL)) currentuser->hostport_tree = stat_result;
-					if (currentuser->hostport_tree == NULL) {
-						logmsg(DBG_NETFLOW,"Warning! User %i still has empty hostport tree! :(",currentuser->id);
-					};
-					verbose_mutex_unlock(&(currentuser->user_mutex));
-				} else {
-					logmsg(DBG_NETFLOW,"Warning! User not found (srcaddr: %s, dstaddr %s)", ipFromIntToStr(records[n].srcaddr), ipFromIntToStr(records[n].dstaddr));
-				};
+                            currentzone->group_ref->in_diff += records[n].bytecount;
+                            currentzone->group_ref->group_changed = 1;
+                            currentzone->zone_in_bytes += records[n].bytecount;
+                        }
+                        logmsg(DBG_NETFLOW,"Record %i: session %i, in: %lu, out: %lu",packet->seq+n,currentuser->session_id,currentzone->group_ref->in_bytes,currentzone->group_ref->out_bytes);
+                        } else {
+                            logmsg(DBG_NETFLOW,"Warning! Zone not found! (uid: %u, srcaddr: %s, dstaddr %s)", currentuser->id, ipFromIntToStr(records[n].srcaddr), ipFromIntToStr(records[n].dstaddr));
+                        };
+                        //Store per-host-port stats:
+                        //Construct new record:
+                        stat_record * stat_r = new stat_record;
+                        if (flow_direction == 0)
+                        {
+                            stat_r->bytes_out=records[n].bytecount;
+                            stat_r->bytes_in=0;
+                            stat_r->packets_out=records[n].pktcount;
+                            stat_r->packets_in=0;
+                        }
+                        else if (flow_direction == 1)
+                        {
+                            stat_r->bytes_in=records[n].bytecount;
+                            stat_r->bytes_out=0;
+                            stat_r->packets_out=0;
+                            stat_r->packets_in=records[n].pktcount;
+                        };
+                        stat_r->host=dst_ip;
+                        stat_r->port=dst_port;
+                        stat_r->new_rec=true;
+                        stat_r->updated=true;
+                        //Store record in tree:
+                        host_node * stat_result=fs_update(currentuser->hostport_tree,dst_ip,stat_r, NULL);
+                        //If just started tree and got it from fs_update, attach it to user, otherwise keep tree head (or empty, which is error)
+                        if ((stat_result != NULL) &&  (currentuser->hostport_tree == NULL)) currentuser->hostport_tree = stat_result;
+                        if (currentuser->hostport_tree == NULL) {
+                            logmsg(DBG_NETFLOW,"Warning! User %i still has empty hostport tree! :(",currentuser->id);
+                        };
+                        verbose_mutex_unlock(&(currentuser->user_mutex));
+                    } else {
+                        logmsg(DBG_NETFLOW,"Warning! User not found (srcaddr: %s, dstaddr %s)", ipFromIntToStr(records[n].srcaddr), ipFromIntToStr(records[n].dstaddr));
+                    };
+                };
 			};
 		};
 	};

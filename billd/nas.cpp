@@ -8,16 +8,11 @@ C_NAS::C_NAS (MYSQL_ROW result){
 	listByIP_mutex = mutex;
 	pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 	listBySID_mutex = mutex1;
-	flow_src_port = atoi(result[0]);
-	flow_port = flow_src_port;
+	flow_src_port = atoi(result[2]);
 	id=atoi(result[0]);
 	name=result[3];
 
-	logmsg(DBG_ALWAYS,"Loaded NAS id %s ip %s port %s identifier %s",result[0],result[1],result[2],result[3]);
-}
-
-uint16_t C_NAS::getFlowPort(void){
-	return flow_port;
+	logmsg(DBG_ALWAYS,"Loaded NAS id %u ip %s port %u name %",id,result[1],flow_src_port,result[3]);
 }
 
 uint16_t C_NAS::getFlowSrcPort(void){
@@ -28,9 +23,18 @@ uint32_t C_NAS::getId(void){
 	return id;
 }
 
+const char* C_NAS::getName(void){
+    return name.c_str();
+}
+
 C_user* C_NAS::getUserByIP(uint32_t ip_addr,uint32_t start_time,uint32_t end_time){
 	verbose_mutex_lock(&listByIP_mutex);
-	C_user* myuser = usersByIP[ip_addr];
+	C_user* myuser;
+	if (usersByIP.count(ip_addr)>1){
+        myuser = usersByIP[ip_addr];
+	}else {
+	    myuser = usersByIP[ip_addr];
+	};
 	verbose_mutex_unlock(&listByIP_mutex);
 	return myuser;
 }

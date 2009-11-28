@@ -30,12 +30,21 @@ void end_me (int sig) {
 
 int main(int argc, char** argv) {
 	//Read configuration:
+
+	//Test locks
+    testlocks();
+
 	int i=0;
 	char **config_paths=new char*[3];
-	config_paths[0]="/etc/billd.conf";
-	config_paths[1]="/usr/local/etc/billd.conf";
-	config_paths[2]="/usr/local/billing/conf/billd.conf";
-	while (!cfg.readconfig(config_paths[i++])){}
+	config_paths[0]=(char*)"/etc/billd.conf";
+	config_paths[1]=(char*)"/usr/local/etc/billd.conf";
+	config_paths[2]=(char*)"/usr/local/billing/conf/billd.conf";
+	while (!cfg.readconfig(config_paths[i++])){
+	     if (i>3) {
+	        logmsg(DBG_ALWAYS,"ERROR: no config files found!\n");
+            exit(-1);
+	     };
+	    }
 
 	//Init MySQL library:
 	my_init();

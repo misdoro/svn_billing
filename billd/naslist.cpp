@@ -52,13 +52,29 @@ uint32_t NASList::load(){
 }
 
 C_NAS* NASList::getbyport (uint16_t port){
+    std::map<uint16_t,C_NAS*>::iterator nasit;
 	nasit=naslist.find(port);
-	return nasit->second;
+	logmsg(DBG_NETFLOW,"got iterator");
+	C_NAS* mynas=nasit->second;
+	if (mynas==NULL){
+        logmsg(DBG_NETFLOW,"NULL pointer");
+	    return NULL;
+	};
+	if (nasit->second->getFlowSrcPort()==port){
+	    return mynas;
+    }else{
+        return NULL;
+    };
 }
 
 C_NAS* NASList::getById (uint32_t id){
+    std::map<uint32_t,C_NAS*>::iterator listByIdIt;
 	listByIdIt=listById.find(id);
-	return listByIdIt->second;
+	if (listByIdIt->second->getId()==id){
+	    return listByIdIt->second;
+    }else{
+        return NULL;
+    };
 }
 
 
