@@ -37,8 +37,7 @@ void C_user::load(MYSQL *sqllink){
 }
 
 void C_user::init_mutex(){
-	pthread_mutex_t mutex=PTHREAD_MUTEX_INITIALIZER;
-	user_mutex=mutex;
+	pthread_mutex_init(&user_mutex,NULL);
 };
 
 
@@ -54,11 +53,110 @@ uint32_t C_user::getSID(){
 	return session_id;
 }
 
+
+uint32_t C_user::mask_ip(uint32_t ip, uint8_t mask){
+    uint32_t masked;
+    if (mask) masked = 0xFFFFFFFF << (32-mask);
+    else masked=0;
+    return (ip&masked);
+}
+
+void* C_user::getFlowZone(uint32_t dst_ip,uint16_t dst_port){
+    //Traverse through zones, find matching:
+    std::list<zone*>::iterator zonesiter;
+    zone* ptr;
+    for(zonesiter = zones.begin();zonesiter!=zones.end();zonesiter++){
+        ptr=*zonesiter;
+        if ((ptr->zone_ip == mask_ip(dst_ip,ptr->zone_mask)) && ((ptr->zone_dstport==0)||(ptr->zone_dstport==dst_port))){
+            return (void*)ptr;
+        };
+    };
+    return NULL;
+}
+
+//Update group traffic
+void C_user::updateGroupTraffic(zone_group* myzgroup, uint32_t bytecount, int8_t flow_dir ){
+    zgstatlock.lockWrite();
+    if (flow_dir){
+        myzgroup->in_bytes+=bytecount;
+        myzgroup->in_diff+=bytecount;
+        myzgroup->group_changed=1;
+    }else{
+        myzgroup->out_bytes+=bytecount;
+        myzgroup->out_diff+=bytecount;
+        myzgroup->group_changed=1;
+    };
+    zgstatlock.unlockWrite();
+}
+
 //Update user's group according to zone:
 bool C_user::updateTraffic(uint32_t dst_ip,uint16_t dst_port, uint32_t bytecount,int8_t flow_direction){
+    zone* myzone = (zone*) getFlowZone(dst_ip,dst_port);
+    if (myzone == NULL) return false;
+    else{//Got zone!
+        updateGroupTraffic(myzone->group_ref,bytecount,flow_direction);
+    };
+    return true;
 
-	return false;
-};
+}
+
+//Update user stats in MySQL:
+void C_user::updateStats(MYSQL *sqllink){
+    double chargedMoney=0;
+    double chargedMoneyZ=0;
+    char query[512];
+
+    //Iterate through his groups:
+    std::map<uint32_t,zone_group*>::iterator groupIt;
+    zone_group* group;
+    for(groupIt = this->groups.begin();groupIt!=this->groups.end();groupIt++){
+        group=groupIt->second;
+        //Check if group changed
+        zgstatlock.lockRead();//Mind locks!
+        if (group->group_changed){
+            logmsg(DBG_OFFLOAD,"group %i: in %lu out %lu ",group->id, group->in_diff,group->out_diff);
+            chargedMoneyZ = (double) group->in_diff * group->zone_mb_cost / (double) MB_LENGTH;
+
+            //Try to update pack with this group ID:
+            sprintf(query, "UPDATE userpacks SET units_left = units_left - %lu WHERE user_id=%u AND unittype=1 AND date_expire > CURRENT_TIMESTAMP AND unit_zone=%u AND units_left>%lu ORDER BY date_on ASC LIMIT 1",group->in_diff,this->bill_id,group->id,group->in_diff);
+            mysql_query(sqllink, query);
+            //If no packs updated, charge money :)
+            if (mysql_affected_rows(sqllink)!=1) chargedMoney += chargedMoneyZ;
+
+            //Add stats record:
+            sprintf(query, "insert into session_statistics (zone_group_id,session_id,traf_in,traf_out,traf_in_money) values (%i,%i,%lu,%lu,%f);",group->id,this->session_id,group->in_diff,group->out_diff,chargedMoneyZ);
+            mysql_query(sqllink, query);
+            zgstatlock.unlockRead();
+
+            //Clear delta stats:
+            zgstatlock.lockWrite();
+            group->in_diff=0;
+            group->out_diff=0;
+            group->group_changed=0;
+            zgstatlock.unlockWrite();
+        }else zgstatlock.unlockRead();//Mind locks!
+    };
+    //Update user's debit:
+    if (chargedMoney>0){
+        sprintf(query, "UPDATE users SET debit=debit-%f WHERE id=%u", chargedMoney,this->bill_id);
+		mysql_query(sqllink, query);
+    };
+ /*				//Check user's debit and drop him if he is out of funds:
+				MYSQL_RES *result;
+				sprintf(sql, "SELECT users.debit+users.credit from users where users.id=%i", u->bill_id);
+				verbose_mutex_unlock (&(u->user_mutex));
+				mysql_query(su_link, sql);
+				delete sql;
+				result = mysql_store_result(su_link);
+				MYSQL_ROW row = mysql_fetch_row(result);
+				//Disconnect user if he has not enough money!
+				if (atof(row[0])<0){
+					disconnect_user(u);
+				};
+				mysql_free_result(result);
+    */
+
+}
 
 //Get users's data from stored session:
 void C_user::getsession(char* sessionid,MYSQL *sqllink){
@@ -114,7 +212,6 @@ void C_user::loadgroups(MYSQL *sqllink){
 		newgroup->in_diff = 0;
 		newgroup->out_diff = 0;
 		newgroup->group_changed = 0;
-		//groups.insert(pair<uint>)
 		groups[newgroup->id] = newgroup;
 		logmsg(DBG_EVENTS,"Group %i", newgroup->id);
 	}
@@ -140,7 +237,7 @@ void C_user::loadzones(MYSQL *sqllink){
 		newzone->zone_mask = atoi(row[3]);
 		newzone->zone_dstport = atoi(row[4]);
 		zones.push_back(newzone);
-		logmsg(DBG_EVENTS,"Loaded zone. id=%i, zone_group_id=%i, ip=%s", newzone->id, (newzone->group_ref)->id, ipFromIntToStr(newzone->zone_ip));
+		logmsg(DBG_EVENTS,"Loaded zone. id=%i, zone_group_id=%i, ip %s mask %i", newzone->id, (newzone->group_ref)->id, ipFromIntToStr(newzone->zone_ip), newzone->zone_mask);
 	}
 	mysql_free_result(result);
 	logmsg(DBG_EVENTS,"Zones loaded.");

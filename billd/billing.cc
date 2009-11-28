@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
 
 
 // here - start threads
-	pthread_t threads[4];
+	pthread_t threads[3];
 	int rc = 0;
 	uint64_t t=0;
 //Create user connect/disconnect listener
@@ -77,14 +77,8 @@ int main(int argc, char** argv) {
 		logmsg(DBG_ALWAYS,"ERROR; return code from pthread_create() is %d\n", rc);
 		exit(-1);
 	}
-//Create stats update thread:
-	rc = pthread_create(&threads[2], NULL, statsupdater, (void *)t);
-	if (rc) {
-		logmsg(DBG_ALWAYS,"ERROR; return code from pthread_create() is %d\n", rc);
-		exit(-1);
-	}
 //Create hostport stats update thread:
-	rc = pthread_create(&threads[3], NULL, flowstatsupdater, (void *)t);
+	rc = pthread_create(&threads[2], NULL, flowstatsupdater, (void *)t);
 	if (rc) {
 		logmsg(DBG_ALWAYS,"ERROR; return code from pthread_create() is %d\n", rc);
 		exit(-1);

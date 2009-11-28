@@ -34,9 +34,9 @@ uint32_t rwLock::unlockRead(void){
 //Acquire write lock
 void rwLock::lockWrite(void){
     pthread_mutex_lock(&flagMutex);
-    while (writing) pthread_cond_wait(&writeDone,&flagMutex);	//Wait if someone is writing
-    writing = true;						//Lock writer so new readers will wait
-    while (readers>0) pthread_cond_wait(&readDone,&flagMutex);	//Wait for all readers to finish
+    while (writing) pthread_cond_wait(&writeDone,&flagMutex);   //Wait if someone is writing
+    writing = true;                                             //Lock writer so new readers will wait
+    while (readers>0) pthread_cond_wait(&readDone,&flagMutex);  //Wait for all readers to finish
     pthread_mutex_unlock(&flagMutex);
 }
 

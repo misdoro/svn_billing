@@ -85,26 +85,27 @@ void * netflowlistener(void *threadid)
 	//Create vars for packet data
 	pheader * packet = new pheader;
 	flowrecord *records = new flowrecord[30];
-	user *currentuser=NULL;
+	//user *currentuser=NULL;
 	int8_t flow_direction=-1;
 	uint32_t dst_ip;
 	uint16_t dst_port;
-	user_zone *currentzone;
+//	user_zone *currentzone;
 	if (bind(sock, (struct sockaddr *)&server, length) < 0)
 	logmsg(DBG_NETFLOW,"Error binding netflow socket");
 	fromlen = sizeof(struct sockaddr_in);
-	while (cfg.stayalive) {
+	while (cfg.stayalive)
+	{
 		n = recvfrom(sock, buf, 1470, 0, (struct sockaddr *)&from, &fromlen);
 		if (n < 0 && errno!=EAGAIN) logmsg(DBG_NETFLOW,"Error receiving netflow datagram");
-		else if (n<0 &&	errno==EAGAIN ){	//Recvfrom exited by timeout, necessary to exit properly
+		else if (n<0 &&	errno==EAGAIN )
+		{	//Recvfrom exited by timeout, necessary to exit properly
 			logmsg(DBG_NETFLOW,"listener timeout");
 			continue;
 		};
 		if (fillhdr(packet, buf)) {
 			continue;
 			logmsg(DBG_NETFLOW,"recieved malformed datagram");
-		}
-		else
+		}else
 		{
 
 			logmsg(DBG_NETFLOW,"received datagram!");
@@ -121,22 +122,22 @@ void * netflowlistener(void *threadid)
 			//Get NAS:
 			logmsg(DBG_NETFLOW,"NAS SOURCE ADDRESS: %s, port %i",inet_ntoa(from.sin_addr),ntohs(from.sin_port));
 			C_NAS* thisnas = nases.getbyport(ntohs(from.sin_port));
+
 			if (thisnas == NULL){
 			    logmsg(DBG_NETFLOW,"NAS not found in list.\n");
-			}else{
-			    const char* nasname=thisnas->getName();
-			    logmsg(DBG_NETFLOW,"NAS found\n");
-			    logmsg(DBG_NETFLOW,"NAS name %s\n",nasname);
-			//Calculate NAS start time:
-			//uint32_t nasstart=(packet->time - packet->uptime/1000);
-			//Fill in packet data
-                for (n = 0; n < packet->nflows; n++) {
+			}else
+			{
+			    logmsg(DBG_NETFLOW,"NAS %s\n",thisnas->getName());
+
+                //Fill in packet data
+                for (n = 0; n < packet->nflows; n++)
+                {
                     fillflow(&(records[n]), buf + 24 + n * 48);
-                    //uint32_t starttime=records[n].starttime/1000+nasstart;
-                    //uint32_t endtime=records[n].endtime/1000+nasstart;
+
                     C_user* thisuser;
                     //Get user by flow IP:
-                    if ((thisuser = thisnas->getUserByIP(records[n].srcaddr,records[n].starttime,records[n].endtime))!=NULL){
+                    if ((thisuser = thisnas->getUserByIP(records[n].srcaddr,records[n].starttime,records[n].endtime))!=NULL)
+                    {
                         dst_ip 	 = records[n].dstaddr;
                         dst_port = records[n].dstport;
                         flow_direction = 0;
@@ -144,47 +145,25 @@ void * netflowlistener(void *threadid)
                         dst_ip 	 = records[n].srcaddr;
                         dst_port = records[n].srcport;
                         flow_direction = 1;
-				}else{
-					logmsg (DBG_NETFLOW,"IP not found: srcaddr %s, dstaddr %s,",ipFromIntToStr(records[n].srcaddr),ipFromIntToStr(records[n].dstaddr));
-					flow_direction = -1;
-					continue;
-				};
+                    }else{
+                        logmsg (DBG_NETFLOW,"IP not found: srcaddr %s, dstaddr %s,",ipFromIntToStr(records[n].srcaddr),ipFromIntToStr(records[n].dstaddr));
+                        flow_direction = -1;
+                        continue;
+                    };
 
-				//Save flow data
-				if (flow_direction>=0){
-					if (thisuser->updateTraffic(dst_ip,dst_port,records[n].bytecount,flow_direction)){
-						logmsg(DBG_NETFLOW,"Record %i: session %u",packet->seq+n, thisuser->getSID());
-					}else{
-						logmsg(DBG_NETFLOW,"Warning! Zone not found! (sid: %u, srcaddr: %s, dstaddr %s)", thisuser->getSID(), ipFromIntToStr(records[n].srcaddr), ipFromIntToStr(records[n].dstaddr));
-					};
-				};
-
-				if (currentuser != NULL) {
-					logmsg(DBG_NETFLOW,"Got user %i",currentuser->session_id);
-					verbose_mutex_lock(&(currentuser->user_mutex));
-					//Get flow direction(0->out, 1->in)
-					//Store per-zone stats:
-					currentzone = getflowzone(currentuser, dst_ip, dst_port);
-
-					if (currentzone != NULL) {
-						if (flow_direction == 0)
-						{
-							currentzone->group_ref->out_bytes += records[n].bytecount;
-							currentzone->group_ref->out_diff += records[n].bytecount;
-							currentzone->group_ref->group_changed = 1;
-							currentzone->zone_out_bytes += records[n].bytecount;
-						}
-						else if (flow_direction == 1)
-						{
-							currentzone->group_ref->in_bytes += records[n].bytecount;
-                            currentzone->group_ref->in_diff += records[n].bytecount;
-                            currentzone->group_ref->group_changed = 1;
-                            currentzone->zone_in_bytes += records[n].bytecount;
-                        }
-                        logmsg(DBG_NETFLOW,"Record %i: session %i, in: %lu, out: %lu",packet->seq+n,currentuser->session_id,currentzone->group_ref->in_bytes,currentzone->group_ref->out_bytes);
-                        } else {
-                            logmsg(DBG_NETFLOW,"Warning! Zone not found! (uid: %u, srcaddr: %s, dstaddr %s)", currentuser->id, ipFromIntToStr(records[n].srcaddr), ipFromIntToStr(records[n].dstaddr));
+                    //Save flow data
+                    if (flow_direction>=0)
+                    {
+                        if (thisuser->updateTraffic(dst_ip,dst_port,records[n].bytecount,flow_direction))
+                        {
+                            logmsg(DBG_NETFLOW,"Record %i: session %u",packet->seq+n, thisuser->getSID());
+                        }else{
+                            logmsg(DBG_NETFLOW,"Warning! Zone not found! (sid: %u, ip %s, port %u)", thisuser->getSID(), ipFromIntToStr(dst_ip), dst_port);
                         };
+                    };
+
+				/*if (thisuser != NULL) {
+
                         //Store per-host-port stats:
                         //Construct new record:
                         stat_record * stat_r = new stat_record;
@@ -216,7 +195,7 @@ void * netflowlistener(void *threadid)
                         verbose_mutex_unlock(&(currentuser->user_mutex));
                     } else {
                         logmsg(DBG_NETFLOW,"Warning! User not found (srcaddr: %s, dstaddr %s)", ipFromIntToStr(records[n].srcaddr), ipFromIntToStr(records[n].dstaddr));
-                    };
+                    };*/
                 };
 			};
 		};

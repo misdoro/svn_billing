@@ -46,6 +46,7 @@
 
 #include "tree.h"
 #include "rwLock.h"
+#include "threads.h"
 
 #include "user.h"
 #include "nas.h"
@@ -97,29 +98,7 @@ struct flowrecord {
 	uint16_t pad2;
 };
 
-//billing structures
-struct zone_group {
-	zone_group *next;
-	uint32_t id;
-	uint64_t in_bytes;
-	uint64_t out_bytes;
-	bool group_changed;
-	uint64_t in_diff;
-	uint64_t out_diff;
-	double zone_mb_cost;
-};
 
-struct user_zone {
-	user_zone *next;
-	zone_group *group_ref;
-	uint32_t id;
-//	uint32_t zone_group_id;
-	uint32_t zone_ip;
-	uint8_t zone_mask;
-	uint16_t zone_dstport;
-	uint64_t zone_in_bytes;
-	uint64_t zone_out_bytes;
-};
 
 struct user {
 	user *next;
@@ -136,8 +115,8 @@ struct user {
 	uint32_t session_end_time;
 	uint32_t die_time;
 	bool debit_changed;
-	user_zone *first_user_zone;
-	zone_group *first_zone_group;
+//	user_zone *first_user_zone;
+//	zone_group *first_zone_group;
 	pthread_mutex_t user_mutex;
 	pthread_t user_drop_thread;
 	host_node *hostport_tree;
@@ -174,14 +153,14 @@ int disconnect_user (user * drophim);
 int verbose_mutex_lock(pthread_mutex_t *mutex);
 int verbose_mutex_unlock(pthread_mutex_t *mutex);
 char *ipFromIntToStr(uint32_t ip);
-uint32_t ipFromStrToInt(const char *ipstr);
-user *onUserConnected(char *session_id, MYSQL *link);
-void onUserDisconnected(char *session_id);
+
+//user *onUserConnected(char *session_id, MYSQL *link);
+//void onUserDisconnected(char *session_id);
 void removeUser(user * current_u);
 void logmsg ( uint8_t flags, const char* message, ...);
-user * getuserbyip(uint32_t psrcaddr, uint32_t pdstaddr , uint32_t pstarttime, uint32_t pendtime);
-uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask);
-user_zone * getflowzone(user * curr_user, uint32_t dst_ip,uint16_t dst_port);
-//daemonize.cc
+
+
+
 int daemonize(void);
+
 #endif				/* _BILLING_H */
