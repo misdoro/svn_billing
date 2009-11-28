@@ -3,7 +3,6 @@
 
 class C_NAS {
 	private:
-		uint16_t flow_port;
 		uint16_t flow_src_port; 			//NetFlow source port
 		sockaddr_in flow_src_addr; 			//NetFlow source address
 		sockaddr_in event_src_addr;			//Events source address
@@ -16,11 +15,11 @@ class C_NAS {
 	public:
 		static MYSQL *sqllink;
 		C_NAS(MYSQL_ROW);
-		uint16_t getFlowPort(void);
 		uint16_t getFlowSrcPort(void);
 		uint32_t getId(void);
 		void add_user(C_user*);
 		C_user* getUserByIP(uint32_t,uint32_t,uint32_t);
+		const char* getName();
 
 //		void dropUser(&C_user);
 };
