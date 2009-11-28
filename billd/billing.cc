@@ -30,10 +30,6 @@ void end_me (int sig) {
 
 int main(int argc, char** argv) {
 	//Read configuration:
-
-	//Test locks
-    testlocks();
-
 	int i=0;
 	char **config_paths=new char*[3];
 	config_paths[0]=(char*)"/etc/billd.conf";

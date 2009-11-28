@@ -42,6 +42,11 @@
 
 #include <limits.h> //strtoull
 
+#include "Config.h"
+
+#include "tree.h"
+#include "rwLock.h"
+
 #include "user.h"
 #include "nas.h"
 #include "naslist.h"
@@ -49,10 +54,8 @@
 #include "Config.h"
 
 #include "tree.h"
+#include "rwLock.h"
 
-//#include "user.h"
-#include "nas.h"
-#include "naslist.h"
 
 #define MB_LENGTH 1048576
 
@@ -140,24 +143,7 @@ struct user {
 	host_node *hostport_tree;
 };
 
-class rwLock {
-    private:
 
-    uint32_t readers;
-    uint8_t writing;
-    pthread_mutex_t flagMutex;
-    pthread_cond_t writeDone;
-    pthread_cond_t readDone;
-
-    public:
-    rwLock(void);
-    ~rwLock(void);
-    uint32_t lockRead(void);
-    uint32_t unlockRead(void);
-    void lockWrite(void);
-    void unlockWrite(void);
-
-};
 
 #define DBG_LOCKS 1
 #define DBG_NETFLOW 2
@@ -198,8 +184,4 @@ uint32_t mask_ip(uint32_t unmasked_ip, uint8_t mask);
 user_zone * getflowzone(user * curr_user, uint32_t dst_ip,uint16_t dst_port);
 //daemonize.cc
 int daemonize(void);
-void *lockthread (void *threadid);
-void testlocks(void);
-
-
 #endif				/* _BILLING_H */

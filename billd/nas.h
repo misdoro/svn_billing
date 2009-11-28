@@ -9,9 +9,8 @@ class C_NAS {
 		std::string name;						//NAS name
 		uint32_t id;						//NAS ID
 		std::map<uint32_t,C_user*> usersByIP;	//users list
-		pthread_mutex_t listByIP_mutex;			//users list mutex
 		std::map<uint32_t,C_user*> usersBySID;	//users by session ID
-		pthread_mutex_t listBySID_mutex;		//users list mutex
+		rwLock mylock;
 	public:
 		static MYSQL *sqllink;
 		C_NAS(MYSQL_ROW);
