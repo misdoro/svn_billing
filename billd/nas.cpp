@@ -30,22 +30,42 @@ const char* C_NAS::getName(void){
     return name.c_str();
 }
 
+//Get user having this IP and session start&end time out of flow start&end time
 C_user* C_NAS::getUserByIP(uint32_t ip_addr,uint32_t start_time,uint32_t end_time){
-	C_user* myuser;
-	mylock.lockRead();
-	if (usersByIP.count(ip_addr)>1){
-        myuser = usersByIP[ip_addr];
-	}else {
-	    myuser = usersByIP[ip_addr];
-	};
+	C_user* myUser;
+
+    //Iterators for lookup:
+    pair<std::multimap<uint32_t,C_user*>::iterator,
+        std::multimap<uint32_t,C_user*>::iterator> searchRes;
+    std::multimap<uint32_t,C_user*>::iterator userIt;
+
+    mylock.lockRead();
+
+    searchRes = usersByIP.equal_range(ip_addr);
+    userIt=searchRes.first;
+    //Check all users with this IP, try to find one with matching time:
+    while ((userIt!=searchRes.second) ||userIt!=usersByIP.end() ){
+        myUser = userIt->second;
+        mylock.unlockRead();
+        if (myUser!=NULL){
+            if (myUser->checkFlowTimes(start_time,end_time)){
+                return myUser;
+            };
+        }else{
+            return NULL;
+        }
+        mylock.lockRead();
+        userIt++;
+    };
 	mylock.unlockRead();
-	return myuser;
+	return NULL;
 }
 
 //Add new user to my maps
 void C_NAS::add_user(C_user* newuser){
     mylock.lockWrite();
-	usersByIP[newuser->getIP()]=newuser;
+    usersByIP.insert(pair<uint32_t,C_user*>(newuser->getIP(),newuser));
+	//usersByIP[newuser->getIP()]=newuser;
 	usersBySID[newuser->getSID()]=newuser;
     mylock.unlockWrite();
 }

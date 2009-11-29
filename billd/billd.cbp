@@ -33,7 +33,6 @@
 		<Unit filename="billing.h" />
 		<Unit filename="daemonize.cc" />
 		<Unit filename="misc.cc" />
-		<Unit filename="mysql.cc" />
 		<Unit filename="nas.cpp" />
 		<Unit filename="nas.h" />
 		<Unit filename="naslist.cpp" />
@@ -41,6 +40,8 @@
 		<Unit filename="netflow.cc" />
 		<Unit filename="rwLock.cpp" />
 		<Unit filename="rwLock.h" />
+		<Unit filename="threads.cpp" />
+		<Unit filename="threads.h" />
 		<Unit filename="tree.cc" />
 		<Unit filename="tree.h" />
 		<Unit filename="user.cpp" />

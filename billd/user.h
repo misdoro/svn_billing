@@ -67,6 +67,9 @@ class C_user{
 		void updateStats(MYSQL*);
 
 		void userDisconnected();
+
+		bool checkFlowTimes(uint32_t,uint32_t);
+
 		int droupser();
 };
 

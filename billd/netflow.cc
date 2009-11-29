@@ -135,18 +135,22 @@ void * netflowlistener(void *threadid)
                     fillflow(&(records[n]), buf + 24 + n * 48);
 
                     C_user* thisuser;
+                    //Calculate flow start&end time in seconds:
+                    uint32_t starttime = (records[n].starttime/1000 - packet->uptime/1000)+packet->time;
+                    uint32_t endtime = (records[n].endtime/1000 - packet->uptime/1000)+packet->time;
+
                     //Get user by flow IP:
-                    if ((thisuser = thisnas->getUserByIP(records[n].srcaddr,records[n].starttime,records[n].endtime))!=NULL)
+                    if ((thisuser = thisnas->getUserByIP(records[n].srcaddr,starttime,endtime))!=NULL)
                     {
                         dst_ip 	 = records[n].dstaddr;
                         dst_port = records[n].dstport;
                         flow_direction = 0;
-                    }else if ((thisuser = thisnas->getUserByIP(records[n].dstaddr,records[n].starttime,records[n].endtime))!=NULL){
+                    }else if ((thisuser = thisnas->getUserByIP(records[n].dstaddr,starttime,endtime))!=NULL){
                         dst_ip 	 = records[n].srcaddr;
                         dst_port = records[n].srcport;
                         flow_direction = 1;
                     }else{
-                        logmsg (DBG_NETFLOW,"IP not found: srcaddr %s, dstaddr %s,",ipFromIntToStr(records[n].srcaddr),ipFromIntToStr(records[n].dstaddr));
+                        logmsg (DBG_NETFLOW,"IP not found: srcaddr %u, dstaddr %u, starttime %u, endtime %u",records[n].srcaddr,records[n].dstaddr,records[n].starttime,records[n].endtime);
                         flow_direction = -1;
                         continue;
                     };
