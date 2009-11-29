@@ -13,8 +13,6 @@ class C_NAS : public thread {
 		std::map<uint32_t,C_user*> usersBySID;	//users by session ID
 		rwLock mylock;
 
-        pthread_t suThread;
-		void * statsUpdater(void *threadid);//users stats updater thread
 
 	public:
 		static MYSQL *sqllink;

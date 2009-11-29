@@ -2,7 +2,7 @@
 #define USER_H_INCLUDED
 #include "billing.h"
 
-class C_user{
+class C_user: public thread{
 	private:
 		uint32_t id;
 		uint32_t bill_id;
@@ -66,9 +66,13 @@ class C_user{
 
 		void updateStats(MYSQL*);
 
+		bool checkDebit(MYSQL*);
+
 		void userDisconnected();
 
 		bool checkFlowTimes(uint32_t,uint32_t);
+
+        void runThread();//Thread to disconnect user
 
 		int droupser();
 };
