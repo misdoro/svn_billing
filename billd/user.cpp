@@ -114,26 +114,30 @@ void C_user::updateStats(MYSQL *sqllink){
         //Check if group changed
         zgstatlock.lockRead();//Mind locks!
         if (group->group_changed){
-            logmsg(DBG_OFFLOAD,"group %i: in %lu out %lu ",group->id, group->in_diff,group->out_diff);
-            chargedMoneyZ = (double) group->in_diff * group->zone_mb_cost / (double) MB_LENGTH;
-
-            //Try to update pack with this group ID:
-            sprintf(query, "UPDATE userpacks SET units_left = units_left - %lu WHERE user_id=%u AND unittype=1 AND date_expire > CURRENT_TIMESTAMP AND unit_zone=%u AND units_left>%lu ORDER BY date_on ASC LIMIT 1",group->in_diff,this->bill_id,group->id,group->in_diff);
-            mysql_query(sqllink, query);
-            //If no packs updated, charge money :)
-            if (mysql_affected_rows(sqllink)!=1) chargedMoney += chargedMoneyZ;
-
-            //Add stats record:
-            sprintf(query, "insert into session_statistics (zone_group_id,session_id,traf_in,traf_out,traf_in_money) values (%i,%i,%lu,%lu,%f);",group->id,this->session_id,group->in_diff,group->out_diff,chargedMoneyZ);
-            mysql_query(sqllink, query);
+            uint64_t inDiff=group->in_diff;
+            uint64_t outDiff=group->out_diff;
             zgstatlock.unlockRead();
-
             //Clear delta stats:
             zgstatlock.lockWrite();
             group->in_diff=0;
             group->out_diff=0;
             group->group_changed=0;
             zgstatlock.unlockWrite();
+
+            logmsg(DBG_OFFLOAD,"group %i: in %lu out %lu ",group->id, inDiff,outDiff);
+            chargedMoneyZ = (double) inDiff * group->zone_mb_cost / (double) MB_LENGTH;
+
+            //Try to update pack with this group ID:
+            sprintf(query, "UPDATE userpacks SET units_left = units_left - %lu WHERE user_id=%u AND unittype=1 AND date_expire > CURRENT_TIMESTAMP AND unit_zone=%u AND units_left>%lu ORDER BY date_on ASC LIMIT 1",inDiff,this->bill_id,group->id,inDiff);
+            mysql_query(sqllink, query);
+            //If no packs updated, charge money :)
+            if (mysql_affected_rows(sqllink)!=1) chargedMoney += chargedMoneyZ;
+
+            //Add stats record:
+            sprintf(query, "insert into session_statistics (zone_group_id,session_id,traf_in,traf_out,traf_in_money) values (%i,%i,%lu,%lu,%f);",group->id,this->session_id,inDiff,outDiff,chargedMoneyZ);
+            mysql_query(sqllink, query);
+
+
         }else zgstatlock.unlockRead();//Mind locks!
     };
     //Update user's debit:
@@ -141,22 +145,27 @@ void C_user::updateStats(MYSQL *sqllink){
         sprintf(query, "UPDATE users SET debit=debit-%f WHERE id=%u", chargedMoney,this->bill_id);
 		mysql_query(sqllink, query);
     };
- /*				//Check user's debit and drop him if he is out of funds:
-				MYSQL_RES *result;
-				sprintf(sql, "SELECT users.debit+users.credit from users where users.id=%i", u->bill_id);
-				verbose_mutex_unlock (&(u->user_mutex));
-				mysql_query(su_link, sql);
-				delete sql;
-				result = mysql_store_result(su_link);
-				MYSQL_ROW row = mysql_fetch_row(result);
-				//Disconnect user if he has not enough money!
-				if (atof(row[0])<0){
-					disconnect_user(u);
-				};
-				mysql_free_result(result);
-    */
 
 }
+
+//Check user's debit, return true if he has enough money
+bool C_user::checkDebit(MYSQL *sqllink){
+    MYSQL_RES *result;
+    char query[200];
+    sprintf(query,"SELECT users.debit+users.credit from users where users.id=%i", this->bill_id);
+    mysql_query(sqllink,query);
+    result = mysql_store_result(sqllink);
+    MYSQL_ROW row = mysql_fetch_row(result);
+
+    double money=atof(row[0]);
+
+    mysql_free_result(result);
+    return money>0;
+}
+
+//User disconnect method, calles when debit < 0;
+void C_user::runThread(){
+};
 
 //Get users's data from stored session:
 void C_user::getsession(char* sessionid,MYSQL *sqllink){

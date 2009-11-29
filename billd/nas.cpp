@@ -65,7 +65,6 @@ C_user* C_NAS::getUserByIP(uint32_t ip_addr,uint32_t start_time,uint32_t end_tim
 void C_NAS::add_user(C_user* newuser){
     mylock.lockWrite();
     usersByIP.insert(pair<uint32_t,C_user*>(newuser->getIP(),newuser));
-	//usersByIP[newuser->getIP()]=newuser;
 	usersBySID[newuser->getSID()]=newuser;
     mylock.unlockWrite();
 }
