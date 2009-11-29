@@ -9,7 +9,7 @@ class C_NAS : public thread {
 		sockaddr_in event_src_addr;			//Events source address
 		std::string name;						//NAS name
 		uint32_t id;						//NAS ID
-		std::map<uint32_t,C_user*> usersByIP;	//users list
+		std::multimap<uint32_t,C_user*> usersByIP;	//users list
 		std::map<uint32_t,C_user*> usersBySID;	//users by session ID
 		rwLock mylock;
 

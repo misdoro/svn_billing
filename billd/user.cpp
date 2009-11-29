@@ -168,7 +168,7 @@ void C_user::getsession(char* sessionid,MYSQL *sqllink){
 	char u_id [17];
 	unique_session_id = strtoull(sessionid,NULL,16);
 	sprintf(u_id,"%.16lx",unique_session_id);
-	query = "SELECT id,user_id,user_name,nas_linkname,ppp_ip,sess_start,nas_id FROM sessions where session_id='";
+	query = "SELECT id,user_id,user_name,nas_linkname,ppp_ip,UNIX_TIMESTAMP(sess_start),nas_id FROM sessions where session_id='";
 	query.append(u_id);
 	query.append("'");
 	logmsg(DBG_EVENTS,query.c_str());
@@ -181,6 +181,8 @@ void C_user::getsession(char* sessionid,MYSQL *sqllink){
 		id=atol(row[1]);
 		nasLinkName=row[3];
 		user_ip=atol(row[4]);
+		session_start_time=atol(row[5]);
+		session_end_time=0;
 		nas_id=atol(row[6]);
 		logmsg(DBG_EVENTS,"Connected user %s",row[2]);
 	};
@@ -242,6 +244,16 @@ void C_user::loadzones(MYSQL *sqllink){
 	mysql_free_result(result);
 	logmsg(DBG_EVENTS,"Zones loaded.");
 
+}
+
+//Check if flow time matches session interval:
+bool C_user::checkFlowTimes(uint32_t flow_start, uint32_t flow_end){
+    //logmsg(DBG_NETFLOW,"s_s:%i, s_e %i, f_s%i, f_e%i",session_start_time,session_end_time,flow_start,flow_end);
+    return (session_start_time < flow_start
+        && session_start_time < flow_end
+        && (session_end_time == 0
+            || session_end_time > flow_start)
+        );
 }
 
 void C_user::userDisconnected(){
