@@ -17,6 +17,8 @@ class C_NAS : public thread {
 	public:
 		static MYSQL *sqllink;
 		C_NAS(MYSQL_ROW);
+		~C_NAS();
+
 		uint16_t getFlowSrcPort(void);
 		uint32_t getId(void);
 		void add_user(C_user*);

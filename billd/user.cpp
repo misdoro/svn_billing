@@ -14,6 +14,28 @@ C_user::C_user(char* sessionid,MYSQL *sqllink){
 	getsession(sessionid,sqllink);
 }
 
+//Destructor, needed to properly clean up memory
+C_user::~C_user(){
+    //Delete users zonegroups, zones
+    std::list<zone*>::iterator zonesiter;
+    zone* ptr;
+    for(zonesiter = zones.begin();zonesiter!=zones.end();zonesiter++){
+        ptr=*zonesiter;
+        if (ptr!=NULL){
+            delete ptr;
+        };
+
+    };
+    std::map<uint32_t,zone_group*>::iterator groupIt;
+    zone_group* group;
+    for(groupIt = this->groups.begin();groupIt!=this->groups.end();groupIt++){
+        group=groupIt->second;
+        if (group!=NULL){
+            delete group;
+        };
+    };
+}
+
 void C_user::load(){
 	//Connect to MySQL
 	MYSQL *sqllink = connectdb();
@@ -259,15 +281,20 @@ void C_user::loadzones(MYSQL *sqllink){
 bool C_user::checkFlowTimes(uint32_t flow_start, uint32_t flow_end){
     //logmsg(DBG_NETFLOW,"s_s:%i, s_e %i, f_s%i, f_e%i",session_start_time,session_end_time,flow_start,flow_end);
     return (session_start_time < flow_start
-        && session_start_time < flow_end
         && (session_end_time == 0
-            || session_end_time > flow_start)
+            || session_end_time > flow_end)
         );
 }
 
 void C_user::userDisconnected(){
 	verbose_mutex_lock(&user_mutex);
-	die_time = time(NULL);
 	session_end_time=time(NULL);
 	verbose_mutex_unlock(&user_mutex);
+}
+
+//Check if user is ready to be deleted.
+bool C_user::checkDelete(void){
+    if (((time(NULL) - this->session_end_time ) > cfg.die_time_interval)&& this->session_end_time !=0) {
+        return true;
+    }else return false;
 }
