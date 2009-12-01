@@ -30,7 +30,6 @@ CREATE TABLE IF NOT EXISTS `groupnames` (
 	`id`		int NOT NULL auto_increment,
 	`caption`	varchar(255) NOT NULL,
 	`ippoolid`	varchar(20) NOT NULL, /*ID of ip pool for this price, IP pool rules defined using pf, pool itself is stored in MPD*/
-	`mb_cost`	DECIMAL(11,2) NOT NULL default '0',   /*11 digit precision, fractional 2*/
 	PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 

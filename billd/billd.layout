@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Release" />
-<<<<<<< .mine
-	<File name="Config.cpp" open="0" top="0" tabpos="0">
-		<Cursor position="3216" topLine="12" />
-=======
-	<File name="Config.cpp" open="1" top="0" tabpos="9">
-		<Cursor position="1853" topLine="27" />
->>>>>>> .r84
+	<File name="Config.cpp" open="0" top="0" tabpos="9">
+		<Cursor position="2365" topLine="15" />
 	</File>
 	<File name="Config.h" open="0" top="0" tabpos="0">
 		<Cursor position="921" topLine="18" />
@@ -16,88 +11,51 @@
 		<Cursor position="2354" topLine="59" />
 	</File>
 	<File name="billing.cc" open="0" top="0" tabpos="0">
-		<Cursor position="1327" topLine="46" />
+		<Cursor position="2164" topLine="0" />
 	</File>
 	<File name="billing.h" open="0" top="0" tabpos="3">
-		<Cursor position="858" topLine="22" />
+		<Cursor position="2100" topLine="78" />
 	</File>
-<<<<<<< .mine
 	<File name="misc.cc" open="0" top="0" tabpos="1">
-		<Cursor position="4098" topLine="171" />
-=======
-	<File name="misc.cc" open="1" top="0" tabpos="1">
-		<Cursor position="7459" topLine="216" />
->>>>>>> .r84
+		<Cursor position="1412" topLine="40" />
 	</File>
-<<<<<<< .mine
 	<File name="nas.cpp" open="0" top="0" tabpos="4">
-		<Cursor position="2236" topLine="52" />
-=======
-	<File name="nas.cpp" open="1" top="0" tabpos="4">
-		<Cursor position="1932" topLine="61" />
->>>>>>> .r84
+		<Cursor position="1018" topLine="0" />
 	</File>
-<<<<<<< .mine
 	<File name="nas.h" open="0" top="0" tabpos="5">
-		<Cursor position="401" topLine="0" />
-=======
-	<File name="nas.h" open="1" top="0" tabpos="5">
-		<Cursor position="737" topLine="6" />
->>>>>>> .r84
+		<Cursor position="946" topLine="0" />
 	</File>
-<<<<<<< .mine
-	<File name="naslist.cpp" open="0" top="0" tabpos="2">
-		<Cursor position="2078" topLine="33" />
-=======
-	<File name="naslist.cpp" open="1" top="0" tabpos="10">
-		<Cursor position="2166" topLine="89" />
->>>>>>> .r84
+	<File name="naslist.cpp" open="0" top="0" tabpos="10">
+		<Cursor position="494" topLine="0" />
 	</File>
 	<File name="naslist.h" open="0" top="0" tabpos="1">
-		<Cursor position="437" topLine="0" />
+		<Cursor position="206" topLine="0" />
 	</File>
-<<<<<<< .mine
-	<File name="netflow.cc" open="0" top="0" tabpos="10">
-		<Cursor position="5659" topLine="101" />
-=======
-	<File name="netflow.cc" open="1" top="0" tabpos="6">
-		<Cursor position="5298" topLine="162" />
->>>>>>> .r84
+	<File name="netflow.cc" open="0" top="0" tabpos="6">
+		<Cursor position="3777" topLine="0" />
 	</File>
-	<File name="rwLock.cpp" open="0" top="0" tabpos="0">
+	<File name="rwLock.cpp" open="1" top="1" tabpos="1">
 		<Cursor position="1191" topLine="6" />
 	</File>
 	<File name="rwLock.h" open="0" top="0" tabpos="0">
 		<Cursor position="400" topLine="0" />
 	</File>
 	<File name="threads.cpp" open="0" top="0" tabpos="0">
-		<Cursor position="153" topLine="0" />
+		<Cursor position="157" topLine="0" />
+	</File>
+	<File name="threads.h" open="0" top="0" tabpos="0">
+		<Cursor position="522" topLine="0" />
 	</File>
 	<File name="tree.cc" open="0" top="0" tabpos="9">
-		<Cursor position="176" topLine="157" />
+		<Cursor position="1622" topLine="0" />
 	</File>
-<<<<<<< .mine
-	<File name="user.cpp" open="0" top="0" tabpos="8">
-		<Cursor position="2194" topLine="85" />
-=======
-	<File name="user.cpp" open="1" top="1" tabpos="7">
-		<Cursor position="4823" topLine="65" />
->>>>>>> .r84
+	<File name="user.cpp" open="0" top="0" tabpos="7">
+		<Cursor position="904" topLine="9" />
 	</File>
-<<<<<<< .mine
-	<File name="user.h" open="0" top="0" tabpos="7">
-		<Cursor position="1540" topLine="19" />
-=======
-	<File name="user.h" open="1" top="0" tabpos="8">
-		<Cursor position="70" topLine="0" />
->>>>>>> .r84
+	<File name="user.h" open="0" top="0" tabpos="8">
+		<Cursor position="85" topLine="0" />
 	</File>
-<<<<<<< .mine
 	<File name="userconnect.cc" open="0" top="0" tabpos="2">
-		<Cursor position="876" topLine="0" />
-=======
-	<File name="userconnect.cc" open="1" top="0" tabpos="2">
-		<Cursor position="3391" topLine="91" />
->>>>>>> .r84
+		<Cursor position="4725" topLine="103" />
 	</File>
 </CodeBlocks_layout_file>

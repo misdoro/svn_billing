@@ -35,7 +35,7 @@ C_user::~C_user(){
         };
     };
     //Wait for disconnect thread if any
-    join();
+    tryJoin();
 }
 
 void C_user::load(){
@@ -280,7 +280,8 @@ void C_user::loadgroups(MYSQL *sqllink){
 	MYSQL_RES *result;
 
 	char sql[200];
-	sprintf(sql, "SELECT usergroups.group_id,groupnames.mb_cost FROM usergroups,groupnames WHERE user_id=%i and usergroups.group_id=groupnames.id", id);
+	//sprintf(sql, "SELECT usergroups.group_id,groupnames.mb_cost FROM usergroups,groupnames WHERE user_id=%i and usergroups.group_id=groupnames.id", id);
+	sprintf(sql,"SELECT price_groups.group_id,price_groups.mb_cost FROM price_groups,users WHERE price_groups.price_id=users.active_price AND users.id=%u",this->id);
 	mysql_query(sqllink,sql);
 	result = mysql_store_result(sqllink);
 	if (mysql_num_rows(result) == 0) {
@@ -309,7 +310,8 @@ void C_user::loadzones(MYSQL *sqllink){
 	MYSQL_RES *result;
 
 	char sql[400];
-	sprintf(sql, "select allzones.id, zone_groups.group_id, allzones.ip, allzones.mask, allzones.dstport, zone_groups.priority from allzones,zone_groups where allzones.id = zone_groups.zone_id and zone_groups.group_id in (select group_id from usergroups where user_id=%i) order by zone_groups.priority DESC;",id);
+	//sprintf(sql, "select allzones.id, zone_groups.group_id, allzones.ip, allzones.mask, allzones.dstport, zone_groups.priority from allzones,zone_groups where allzones.id = zone_groups.zone_id and zone_groups.group_id in (select group_id from usergroups where user_id=%i) order by zone_groups.priority DESC;",id);
+	sprintf(sql, "SELECT az.id, zg.group_id, az.ip, az.mask, az.dstport, zg.priority FROM allzones AS az,zone_groups AS zg WHERE az.id = zg.zone_id AND zg.group_id IN (SELECT pg.group_id FROM price_groups AS pg,users AS u WHERE pg.price_id=u.active_price AND u.id=%u) ORDER BY zg.priority DESC;",this->id);
 	mysql_query(sqllink,sql);
 	result = mysql_store_result(sqllink);
 	while ((row = mysql_fetch_row(result)) != NULL) {
