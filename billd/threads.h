@@ -19,11 +19,15 @@ class Object
 //Threads class
 class thread : public Object
 {
-  pthread_t thid;
-  int ret;
-  public:
-   void start();
-   void join();
+        pthread_t thid;
+        int ret;
+        bool I_ran;
+
+    public:
+        thread();
+        void start();
+        void tryJoin();
+        void join();
 };
 
 #endif // THREADS_H_INCLUDED

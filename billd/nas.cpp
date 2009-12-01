@@ -30,7 +30,7 @@ C_NAS::C_NAS (MYSQL_ROW result){
 }
 
 C_NAS::~C_NAS () {
-    join();
+    tryJoin();
 }
 
 uint16_t C_NAS::getFlowSrcPort(void){

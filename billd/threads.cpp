@@ -7,12 +7,23 @@ void* executer(void* param)
    pthread_exit(0);
 }
 
+thread::thread(){
+    I_ran=false;
+}
+
 void thread::start()
 {
-   ret=pthread_create(&thid,NULL,executer,(void*)this);
+    I_ran=true;
+    ret=pthread_create(&thid,NULL,executer,(void*)this);
+}
+
+void thread::tryJoin()
+{
+    if (I_ran) join();
 }
 
 void thread::join()
 {
-   pthread_join(thid,NULL);
+    I_ran=false;
+    pthread_join(thid,NULL);
 }
