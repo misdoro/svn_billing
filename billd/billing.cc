@@ -11,7 +11,7 @@ using namespace std;
 pthread_mutex_t users_table_m = PTHREAD_MUTEX_INITIALIZER;
 
 //Define global variables:
-user * firstuser;
+//user * firstuser;
 
 // configuration
 Config cfg;
@@ -78,15 +78,17 @@ int main(int argc, char** argv) {
 		exit(-1);
 	}
 //Create hostport stats update thread:
-	rc = pthread_create(&threads[2], NULL, flowstatsupdater, (void *)t);
+	/*rc = pthread_create(&threads[2], NULL, flowstatsupdater, (void *)t);
 	if (rc) {
 		logmsg(DBG_ALWAYS,"ERROR; return code from pthread_create() is %d\n", rc);
 		exit(-1);
-	}
+	}*/
 
 	if (cfg.do_fork) fflush(stdout);
 	while (cfg.stayalive) sleep(1);
 	logmsg(DBG_THREADS,"Main thread prepares to quit");
+    //for (int i=0;i<3;i++) pthread_join(threads[i],NULL);
+
 	sleep(5);
 	//if (cfg.do_fork) fclose(stdout);
 	mysql_thread_end();

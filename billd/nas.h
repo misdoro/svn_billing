@@ -4,10 +4,12 @@
 
 class C_NAS : public thread {
 	private:
-		//uint16_t flow_src_port; 			//NetFlow source port
 		sockaddr_in flow_src_addr; 			//NetFlow source address&port
 		sockaddr_in event_src_addr;			//Events source address
-		std::string name;						//NAS name
+		sockaddr_in shell_addr;              //MPD shell address
+		std::string shell_login;             //MPD shell login
+		std::string shell_password;          //MPD shell password
+		std::string name;					//NAS name
 		uint32_t id;						//NAS ID
 		std::multimap<uint32_t,C_user*> usersByIP;	//users list
 		std::map<uint32_t,C_user*> usersBySID;	//users by session ID
@@ -27,6 +29,10 @@ class C_NAS : public thread {
 
         void startOffload();
         void runThread();
+
+        sockaddr_in getShellAddr();
+        const char* getShellLogin();
+        const char* getShellPassword();
 
 
 };
