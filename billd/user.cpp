@@ -34,6 +34,8 @@ C_user::~C_user(){
             delete group;
         };
     };
+    //Wait for disconnect thread if any
+    join();
 }
 
 void C_user::load(){
@@ -60,8 +62,11 @@ void C_user::load(MYSQL *sqllink){
 
 void C_user::init_mutex(){
 	pthread_mutex_init(&user_mutex,NULL);
-};
+}
 
+void C_user::setNAS(C_NAS* caller){
+    myNAS=caller;
+}
 
 uint32_t C_user::getNASId(){
 	return nas_id;
@@ -179,14 +184,58 @@ bool C_user::checkDebit(MYSQL *sqllink){
     result = mysql_store_result(sqllink);
     MYSQL_ROW row = mysql_fetch_row(result);
 
+    if (row[0]==NULL){//If can't get debit, drop user.
+        logmsg(DBG_EVENTS,"Cant get user's debit for sid %u, drop him!",this->session_id);
+        this->start();
+        return false;
+    };
     double money=atof(row[0]);
 
     mysql_free_result(result);
-    return money>0;
+    return (money>0);
 }
 
-//User disconnect method, calles when debit < 0;
+//User disconnect method, called when debit < 0;
+void C_user::dropUser(){
+    this->start();//Start runThread to drop user
+}
 void C_user::runThread(){
+    logmsg(DBG_EVENTS,"Going to disconnect link %s",this->nasLinkName.c_str());
+    if (this->session_end_time == 0){
+        //If user is still alive, connect to mpd and drop him:
+        int socketDescriptor;
+        sockaddr_in mpd_shell_addr = myNAS->getShellAddr();
+        socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+        if (socketDescriptor < 0) {
+            logmsg(DBG_EVENTS,"Error creating disconnect socket!");
+        }else{
+			if (connect(socketDescriptor, (struct sockaddr *) &mpd_shell_addr, sizeof(mpd_shell_addr)) < 0) {
+				logmsg(DBG_EVENTS,"cannot connect to MPD console");
+            }else{
+				stringstream buffer;
+				sleep(1);
+				buffer.str("");
+				buffer << myNAS->getShellLogin() << endl;
+				send(socketDescriptor, buffer.str().c_str(), strlen(buffer.str().c_str()) + 1, 0);
+				sleep(1);
+				buffer.str("");
+                buffer << myNAS->getShellPassword() << endl;
+				send(socketDescriptor, buffer.str().c_str(), strlen(buffer.str().c_str()) + 1, 0);
+				sleep(1);
+				buffer.str("");
+				buffer << "link " <<this->nasLinkName << endl;
+				send(socketDescriptor, buffer.str().c_str(), strlen(buffer.str().c_str()) + 1, 0);
+                sleep(1);
+				buffer.str("");
+				buffer << "close" << endl;
+				send(socketDescriptor, buffer.str().c_str(), strlen(buffer.str().c_str()) + 1, 0);
+				sleep(1);
+				logmsg(DBG_EVENTS,"link %s disconnected", this->nasLinkName.c_str());
+			};
+			close(socketDescriptor);
+		};
+	};
+	pthread_exit(NULL);
 };
 
 //Get users's data from stored session:
@@ -199,7 +248,7 @@ void C_user::getsession(char* sessionid,MYSQL *sqllink){
 	char u_id [17];
 	unique_session_id = strtoull(sessionid,NULL,16);
 	sprintf(u_id,"%.16lx",unique_session_id);
-	query = "SELECT id,user_id,user_name,nas_linkname,ppp_ip,UNIX_TIMESTAMP(sess_start),nas_id FROM sessions where session_id='";
+	query = "SELECT s.id,s.user_id,s.user_name,s.nas_linkname,s.ppp_ip,UNIX_TIMESTAMP(s.sess_start),s.nas_id,u.parent FROM sessions as s, users as u WHERE u.id=s.user_id AND session_id='";
 	query.append(u_id);
 	query.append("'");
 	logmsg(DBG_EVENTS,query.c_str());
@@ -215,9 +264,13 @@ void C_user::getsession(char* sessionid,MYSQL *sqllink){
 		session_start_time=atol(row[5]);
 		session_end_time=0;
 		nas_id=atol(row[6]);
+        if (row[7]==NULL) bill_id=id;
+		else bill_id=atol(row[7]);
+		if (bill_id==0) bill_id=id;
 		logmsg(DBG_EVENTS,"Connected user %s",row[2]);
 	};
 	mysql_free_result(result);
+
 
 }
 
@@ -280,10 +333,11 @@ void C_user::loadzones(MYSQL *sqllink){
 //Check if flow time matches session interval:
 bool C_user::checkFlowTimes(uint32_t flow_start, uint32_t flow_end){
     //logmsg(DBG_NETFLOW,"s_s:%i, s_e %i, f_s%i, f_e%i",session_start_time,session_end_time,flow_start,flow_end);
-    return (session_start_time < flow_start
-        && (session_end_time == 0
-            || session_end_time > flow_end)
+    bool result=(session_start_time < flow_start
+        && ((session_end_time == 0)
+            || (session_end_time > flow_end))
         );
+    return result;
 }
 
 void C_user::userDisconnected(){

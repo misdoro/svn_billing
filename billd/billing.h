@@ -98,32 +98,6 @@ struct flowrecord {
 	uint16_t pad2;
 };
 
-
-
-struct user {
-	user *next;
-	uint32_t id;
-	uint32_t bill_id;
-	uint32_t user_ip;
-	double user_debit;
-	double user_debit_diff;
-	double user_credit;
-	uint32_t session_id;
-	string verbose_session_id;
-	string verbose_link_name;
-	uint32_t session_start_time;
-	uint32_t session_end_time;
-	uint32_t die_time;
-	bool debit_changed;
-//	user_zone *first_user_zone;
-//	zone_group *first_zone_group;
-	pthread_mutex_t user_mutex;
-	pthread_t user_drop_thread;
-	host_node *hostport_tree;
-};
-
-
-
 #define DBG_LOCKS 1
 #define DBG_NETFLOW 2
 #define DBG_OFFLOAD 4
@@ -133,30 +107,19 @@ struct user {
 #define DBG_HPSTAT 64
 #define DBG_ALWAYS 128
 
-extern user *firstuser;
 extern Config cfg;
 extern NASList nases;
-extern pthread_mutex_t users_table_m;
-extern pthread_mutex_t mysql_mutex;
-
 
 //userconnect.cc
 void *userconnectlistener(void *threadid);
 //netflow.cc
 void *netflowlistener(void *threadid);
-//mysql.cc
-void *statsupdater(void *threadid);
+
 MYSQL *connectdb();
 //misc.cc
-void *dropUser(void * userstr);
-int disconnect_user (user * drophim);
 int verbose_mutex_lock(pthread_mutex_t *mutex);
 int verbose_mutex_unlock(pthread_mutex_t *mutex);
 char *ipFromIntToStr(uint32_t ip);
-
-//user *onUserConnected(char *session_id, MYSQL *link);
-//void onUserDisconnected(char *session_id);
-void removeUser(user * current_u);
 void logmsg ( uint8_t flags, const char* message, ...);
 
 

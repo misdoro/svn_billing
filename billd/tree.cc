@@ -9,7 +9,7 @@ Inspired by http://cslibrary.stanford.edu/110/BinaryTrees.html
  with the given data and NULL left and right
  pointers.
 */
-
+/*
 host_node *fs_newNode(port_node* port,uint32_t host) {
 	host_node* node=new host_node;
 	node->host = host;
@@ -17,7 +17,7 @@ host_node *fs_newNode(port_node* port,uint32_t host) {
 	node->left = NULL;
 	node->right = NULL;
 	return(node);
-}
+}*/
 
 /*
 	`host` int unsigned NOT NULL default 0,
@@ -28,7 +28,7 @@ host_node *fs_newNode(port_node* port,uint32_t host) {
 	`packets_out` int unsigned NOT NULL default '0',
 	`session_id` int unsigned NOT NULL default '0',
 	`updatescount` smallint unsigned NOT NULL default '0',
-*/
+*//*
 void datarec_dump(stat_record* data, MYSQL *fs_link, uint32_t session_id, char* sql){
 	logmsg(DBG_HPSTAT,"Host: %s, port %u, bytes in %u, bytes out %u, packets in %i, packets out %u, new_rec: %i, updated: %i, ",
 	ipFromIntToStr(data->host), data->port, data->bytes_in, data->bytes_out, data->packets_in,
@@ -53,32 +53,33 @@ void datarec_dump(stat_record* data, MYSQL *fs_link, uint32_t session_id, char* 
 	data->new_rec = false;
 	data->updated = false;
 
-};
+};*/
 
 /*
  Given a binary search tree, dump
  its data elements in increasing
  sorted order.
-*/
+*//*
 void porttree_dump(port_node* node, MYSQL *fs_link, uint32_t session_id, char* sql) {
 	if (node == NULL) return;
 	porttree_dump(node->left, fs_link, session_id,sql);
 	datarec_dump(node->data,fs_link, session_id,sql);
 	porttree_dump(node->right, fs_link, session_id,sql);
-};
+};*/
 
+/*
 void fstree_dump(host_node* node, MYSQL *fs_link, uint32_t session_id, char* sql) {
 	if (node == NULL) return;
 	fstree_dump(node->left, fs_link, session_id,sql);
 	porttree_dump(node->port, fs_link, session_id,sql);
 	fstree_dump(node->right, fs_link, session_id,sql);
-};
+};*/
 
 
 /*
 	Update user's flow stats for current session:
 */
-void * flowstatsupdater(void *threadid) {
+/*void * flowstatsupdater(void *threadid) {
 	logmsg(DBG_THREADS,"started hostport stats offloading thread");
 	MYSQL *fs_link=connectdb();
 	char * sql = new char[1024];
@@ -107,7 +108,8 @@ void * flowstatsupdater(void *threadid) {
 	logmsg(DBG_THREADS,"Complete flow stats offloading thread");
 	pthread_exit(NULL);
 };
-
+*/
+/*
 void port_deleteTree(port_node* node){
 	if (node == NULL) return;
 	port_deleteTree(node->left);
@@ -116,12 +118,14 @@ void port_deleteTree(port_node* node){
 	delete(node);
 	return;
 };
+*/
 
 /*
  Given a binary search tree,
  delete it and it's contents
  btw, it's safe to delete null pointers
 */
+/*
 void fs_deleteTree(host_node* node){
 	if (node == NULL) return;
 	fs_deleteTree(node->left);
@@ -130,13 +134,14 @@ void fs_deleteTree(host_node* node){
 	delete(node);
 	return;
 };
-
+*/
 
 /*
  Helper function that allocates a new node
  with the given data and NULL left and right
  pointers.
 */
+/*
 port_node *fs_newPort(stat_record* data) {
 	port_node* node = new port_node;
 	node->data = data;
@@ -144,10 +149,12 @@ port_node *fs_newPort(stat_record* data) {
 	node->right = NULL;
 	return(node);
 }
+*/
 
 /*
 	Find or create node for this port:
 */
+/*
 port_node *find_port(port_node* pnode, stat_record* data, port_node* parent){
 	if (pnode == NULL) {
 		//not found record, create new one:
@@ -167,11 +174,12 @@ port_node *find_port(port_node* pnode, stat_record* data, port_node* parent){
 			else return(find_port(pnode->right, data, pnode));
 		};
 	};
-};
+};*/
 
 /*
  Add or update host-port record in tree:
 */
+/*
 host_node *fs_update(host_node* node,uint32_t host, stat_record* data,host_node* parent){
 	// 1. Empty tree or new record:
 	if (node == NULL){
@@ -208,3 +216,4 @@ host_node *fs_update(host_node* node,uint32_t host, stat_record* data,host_node*
 		};
 	};
 };
+*/

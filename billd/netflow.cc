@@ -64,7 +64,7 @@ void * netflowlistener(void *threadid)
 	logmsg(DBG_THREADS,"netflow thread started");
 	int *tid;
 	tid = (int *)threadid;
-	int sock, length, n;
+	int sock, length, n,recieved;
 	struct sockaddr_in server;
 	struct sockaddr_in from;
 	socklen_t fromlen;
@@ -95,20 +95,20 @@ void * netflowlistener(void *threadid)
 	fromlen = sizeof(struct sockaddr_in);
 	while (cfg.stayalive)
 	{
-		n = recvfrom(sock, buf, 1470, 0, (struct sockaddr *)&from, &fromlen);
-		if (n < 0 && errno!=EAGAIN) logmsg(DBG_NETFLOW,"Error receiving netflow datagram");
-		else if (n<0 &&	errno==EAGAIN )
+		recieved = recvfrom(sock, buf, 1470, 0, (struct sockaddr *)&from, &fromlen);
+		if (recieved < 0 && errno!=EAGAIN) logmsg(DBG_NETFLOW,"Error receiving netflow datagram");
+		else if (recieved<0 &&	errno==EAGAIN )
 		{	//Recvfrom exited by timeout, necessary to exit properly
 			logmsg(DBG_NETFLOW,"listener timeout");
 			continue;
 		};
 		if (fillhdr(packet, buf)) {
+		    logmsg(DBG_NETFLOW,"recieved malformed datagram");
 			continue;
-			logmsg(DBG_NETFLOW,"recieved malformed datagram");
 		}else
 		{
 
-			logmsg(DBG_NETFLOW,"received datagram!");
+			logmsg(DBG_NETFLOW,"recieved datagram!");
 			//Fill in packet data
 			// Protocol version
 			logmsg(DBG_NETFLOW,"Protocol version: %u", packet->pver);
@@ -118,6 +118,7 @@ void * netflowlistener(void *threadid)
 			logmsg(DBG_NETFLOW,"NAS uptime: %u", packet->uptime);
 			//flow_sequence
 			logmsg(DBG_NETFLOW,"First flow sequence: %u", packet->seq);
+
 
 			//Get NAS:
 			logmsg(DBG_NETFLOW,"NAS SOURCE ADDRESS: %s, port %i",inet_ntoa(from.sin_addr),ntohs(from.sin_port));

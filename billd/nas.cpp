@@ -11,6 +11,18 @@ C_NAS::C_NAS (MYSQL_ROW result){
 	flow_src_addr.sin_addr.s_addr = htonl(atol(result[1]));
 	flow_src_addr.sin_port = htons(atoi(result[2]));
 	name=result[3];
+
+	//MPD shell options:
+    struct hostent *hostInfo;
+    hostInfo = gethostbyname(result[4]);
+    shell_addr.sin_family = hostInfo->h_addrtype;
+    memcpy((char *) &shell_addr.sin_addr.s_addr, hostInfo->h_addr_list[0], hostInfo->h_length);
+    uint16_t shellport=atoi(result[5]);
+    shell_addr.sin_port = htons(shellport);
+    shell_login=result[6];
+    shell_password=result[7];
+
+
     //Start stats offloading thread
 	start();
 	//logmsg(DBG_ALWAYS,"Loaded NAS id %u ip %s port %u name %s",id,inet_ntoa(flow_src_addr),flow_src_port,name.c_str());
@@ -32,6 +44,18 @@ uint32_t C_NAS::getId(void){
 
 const char* C_NAS::getName(void){
     return name.c_str();
+}
+
+sockaddr_in C_NAS::getShellAddr(){
+    return shell_addr;
+}
+
+const char* C_NAS::getShellLogin(){
+    return shell_login.c_str();
+}
+
+const char* C_NAS::getShellPassword(){
+    return shell_password.c_str();
 }
 
 //Get user having this IP and session start&end time out of flow start&end time
@@ -67,6 +91,7 @@ C_user* C_NAS::getUserByIP(uint32_t ip_addr,uint32_t start_time,uint32_t end_tim
 
 //Add new user to my maps
 void C_NAS::add_user(C_user* newuser){
+    newuser->setNAS(this);
     mylock.lockWrite();
     usersByIP.insert(pair<uint32_t,C_user*>(newuser->getIP(),newuser));
 	usersBySID[newuser->getSID()]=newuser;
@@ -95,9 +120,10 @@ void C_NAS::runThread() {
                 //Got user, save his stats.
                 myUser->updateStats(su_link);
                 //Check his debit
-
-                //Disconnect him if debit<0
-
+                if (!myUser->checkDebit(su_link)){
+                    //Disconnect him if debit<0
+                    myUser->dropUser();
+                };
                 //Delete him if he is already disconnected
                 if (myUser->checkDelete()){
                     logmsg(DBG_EVENTS,"Deleting expired user %u",myUser->getSID());
@@ -117,22 +143,6 @@ void C_NAS::runThread() {
             usersIter++;
         };
         mylock.unlockRead();
-/*
-		// for remove disconnected users from table
-		user * next_u;
-		verbose_mutex_lock (&users_table_m);
-		for (user * u = firstuser; u != NULL;) {
-			if (((time(NULL) - u->die_time) > cfg.die_time_interval)&& u->die_time !=0) {
-				// remove dead user
-				next_u = u->next;
-				removeUser(u);
-				u = next_u;
-				continue;
-			}else{
-				u = u->next;
-			};
-		}
-		verbose_mutex_unlock (&users_table_m);*/
 
 	}
 	logmsg(DBG_THREADS,"Finishing stats offloading thread");

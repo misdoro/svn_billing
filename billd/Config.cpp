@@ -45,10 +45,12 @@ bool Config::readconfig(const char* filename){
 		config.readInto( log_date,	"billd_log_date",	true);
 		config.readInto( verbose_daemonize,	"billd_debug_daemonize",false);
 		config.readInto( do_fork,		"billd_daemon_mode",	true);
-		config.readInto( mpd_shell_port,	"billd_mpd_shell_port");
-		config.readInto( mpd_shell_addr,	"billd_mpd_shell_addr");
-		config.readInto( mpd_shell_user,	"billd_mpd_shell_user");
-		config.readInto( mpd_shell_pass,	"billd_mpd_shell_pass");
+
+		//config.readInto( mpd_shell_port,	"billd_mpd_shell_port");
+		//config.readInto( mpd_shell_addr,	"billd_mpd_shell_addr");
+		//config.readInto( mpd_shell_user,	"billd_mpd_shell_user");
+		//config.readInto( mpd_shell_pass,	"billd_mpd_shell_pass");
+
 		config.readInto( logfile,		"billd_log_file",	string("/dev/null"));
 		config.readInto( appendlogs,	"billd_append_logs",	true);
 		config.readInto( pidfile,		"billd_pid_file",	string("/var/run/billd.pid"));

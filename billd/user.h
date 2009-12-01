@@ -1,6 +1,9 @@
 #ifndef USER_H_INCLUDED
 #define USER_H_INCLUDED
-#include "billing.h"
+
+#ifndef NAS_H_INCLUDED
+class C_NAS;
+#endif
 
 class C_user: public thread{
 	private:
@@ -15,6 +18,8 @@ class C_user: public thread{
 		uint32_t session_start_time;
 		uint32_t session_end_time;
 		bool debit_changed;
+
+		C_NAS* myNAS;
 
 		pthread_mutex_t user_mutex;
 		pthread_t user_drop_thread;
@@ -61,6 +66,9 @@ class C_user: public thread{
 
 		void load(MYSQL*);
 		void load();
+
+		void setNAS(C_NAS*);
+
 		uint32_t getNASId(void);
 		uint32_t getSID(void);
 		uint32_t getIP(void);
@@ -79,7 +87,7 @@ class C_user: public thread{
 
         void runThread();//Thread to disconnect user
 
-		int droupser();
+		void dropUser();
 };
 
 #endif // USER_H_INCLUDED

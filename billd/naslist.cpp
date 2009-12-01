@@ -36,12 +36,12 @@ uint32_t NASList::load(){
 
 	//Load all NASes:
 	std::string query;
-	query = "SELECT id,ip,port,identifier FROM naslist;";
+	query = "SELECT id,ip,port,identifier,shell_host,shell_port,shell_user,shell_password FROM naslist;";
 	MYSQL_RES *result;
 	mysql_query(sqllink, query.c_str());
 	result = mysql_store_result(sqllink);
 	if (mysql_num_rows(result) == 0) {
-		logmsg(DBG_ALWAYS,"Warning! No NASes found.");
+		logmsg(DBG_ALWAYS,"ERROR: No NASes found!");
 		cfg.stayalive=false;
 	}else{
 		//Load each NAS
@@ -65,7 +65,6 @@ C_NAS* NASList::getbyport (uint16_t port){
 	nasit=naslist.find(port);
 	C_NAS* mynas=nasit->second;
 	if (mynas==NULL){
-        logmsg(DBG_NETFLOW,"NULL pointer");
 	    return NULL;
 	};
 	if (nasit->second->getFlowSrcPort()==port){
@@ -74,18 +73,6 @@ C_NAS* NASList::getbyport (uint16_t port){
         return NULL;
     };
 }
-
-/*C_NAS* NASList::getBySockAddr(sockaddr_in source){
-    std::map<sockaddr_in,C_NAS*>::iterator saddrit;
-    saddrit = listBySockaddr.find(source);
-    logmsg(DBG_NETFLOW,"got iterator");
-	C_NAS* mynas=saddrit->second;
-	if (mynas==NULL){
-        logmsg(DBG_NETFLOW,"NULL pointer");
-	    return NULL;
-	}else
-	return mynas;
-}*/
 
 C_NAS* NASList::getById (uint32_t id){
     std::map<uint32_t,C_NAS*>::iterator listByIdIt;
