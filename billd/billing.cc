@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
             exit(-1);
 	     };
 	    }
-
+    delete[] config_paths;
 	//Init MySQL library:
 	my_init();
 //	makeDBready();

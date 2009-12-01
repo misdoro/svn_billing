@@ -16,6 +16,15 @@ NASList::NASList (){
 	userSidMutex = mutex2;
 }
 
+NASList::~NASList(){
+    std::map<uint16_t,C_NAS*>::iterator nasit;
+    C_NAS* thisnas;
+    for(nasit=naslist.begin();nasit!=naslist.end();nasit++){
+        thisnas = nasit->second;
+        if (thisnas!=NULL) delete thisnas;
+    };
+}
+
 uint32_t NASList::load(){
 	//Connect to MySQL
 	MYSQL *sqllink = connectdb();
@@ -54,7 +63,6 @@ uint32_t NASList::load(){
 C_NAS* NASList::getbyport (uint16_t port){
     std::map<uint16_t,C_NAS*>::iterator nasit;
 	nasit=naslist.find(port);
-	logmsg(DBG_NETFLOW,"got iterator");
 	C_NAS* mynas=nasit->second;
 	if (mynas==NULL){
         logmsg(DBG_NETFLOW,"NULL pointer");
@@ -119,6 +127,13 @@ void NASList::UserDisconnected(char* sessionid){
 	if (myuser!=NULL){
 		myuser->userDisconnected();
 	}
+}
+
+//Delete disconnected user from SID map.
+void NASList::UserDeleted(C_user* myUser){
+    verbose_mutex_lock(&userSidMutex);
+	usersBySID.erase(myUser->getSID());
+	verbose_mutex_unlock(&userSidMutex);
 }
 
 

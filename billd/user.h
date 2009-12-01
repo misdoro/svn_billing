@@ -14,7 +14,6 @@ class C_user: public thread{
 		std::string nasLinkName;
 		uint32_t session_start_time;
 		uint32_t session_end_time;
-		uint32_t die_time;
 		bool debit_changed;
 
 		pthread_mutex_t user_mutex;
@@ -54,8 +53,12 @@ class C_user: public thread{
 
 
 	public:
+        //Constructors:
 		C_user(char* sessionid);
 		C_user(char* sessionid,MYSQL*);
+		//Destructor:
+		~C_user(void);
+
 		void load(MYSQL*);
 		void load();
 		uint32_t getNASId(void);
@@ -69,6 +72,8 @@ class C_user: public thread{
 		bool checkDebit(MYSQL*);
 
 		void userDisconnected();
+
+		bool checkDelete(void);//Check if user is ready to be deleted, delete internal structures
 
 		bool checkFlowTimes(uint32_t,uint32_t);
 

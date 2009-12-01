@@ -147,6 +147,7 @@ void * userconnectlistener (void *threadid) {
 		verbose_mutex_unlock( &ucsocket_mutex );
 	};
 	logmsg(DBG_THREADS,"userconnectlistener has quit");
+	mysql_thread_end();
     pthread_exit (NULL);
 };
 

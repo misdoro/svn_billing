@@ -17,6 +17,10 @@ C_NAS::C_NAS (MYSQL_ROW result){
 	logmsg(DBG_ALWAYS,"Loaded NAS id %u ip %s port %u name %s",id,inet_ntoa(flow_src_addr.sin_addr),ntohs(flow_src_addr.sin_port),name.c_str());
 }
 
+C_NAS::~C_NAS () {
+    join();
+}
+
 uint16_t C_NAS::getFlowSrcPort(void){
 	return ntohs(flow_src_addr.sin_port);
 	//return flow_src_port;
@@ -90,6 +94,23 @@ void C_NAS::runThread() {
             if (myUser!=NULL){
                 //Got user, save his stats.
                 myUser->updateStats(su_link);
+                //Check his debit
+
+                //Disconnect him if debit<0
+
+                //Delete him if he is already disconnected
+                if (myUser->checkDelete()){
+                    logmsg(DBG_EVENTS,"Deleting expired user %u",myUser->getSID());
+                    //delete from NAS maps;
+                    mylock.lockWrite();
+                    usersBySID.erase(myUser->getSID());
+                    usersByIP.erase(usersIter);
+                    mylock.unlockWrite();
+                    //Delete from naslist maps:
+                    nases.UserDeleted(myUser);
+                    //Delete user himself:
+                    delete myUser;
+                };
             };
 
             mylock.lockRead();
