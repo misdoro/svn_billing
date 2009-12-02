@@ -117,13 +117,13 @@ void C_user::updateGroupTraffic(zone_group* myzgroup, uint32_t bytecount, int8_t
 }
 
 //Update user's group according to zone:
-bool C_user::updateTraffic(uint32_t dst_ip,uint16_t dst_port, uint32_t bytecount,int8_t flow_direction){
+uint32_t C_user::updateTraffic(uint32_t dst_ip,uint16_t dst_port, uint32_t bytecount,int8_t flow_direction){
     zone* myzone = (zone*) getFlowZone(dst_ip,dst_port);
-    if (myzone == NULL) return false;
+    if (myzone == NULL) return 0;
     else{//Got zone!
         updateGroupTraffic(myzone->group_ref,bytecount,flow_direction);
     };
-    return true;
+    return myzone->group_ref->id;
 
 }
 

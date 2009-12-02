@@ -7,6 +7,8 @@ bool Config::readconfig(const char* filename){
 	//Temp variables:
 	string tempstr;
 
+	logmsg(DBG_ALWAYS,"Reading config %s:",filename);
+
 	stayalive=true;
 	//Init config:
 	try {
