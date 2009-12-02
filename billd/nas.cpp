@@ -76,7 +76,8 @@ C_user* C_NAS::getUserByIP(uint32_t ip_addr,uint32_t start_time,uint32_t end_tim
         myUser = userIt->second;
         mylock.unlockRead();
         if (myUser!=NULL){
-            if (myUser->checkFlowTimes(start_time,end_time)){
+	    
+            if (myUser->checkFlowTimes(start_time,end_time)&& (myUser->getIP() == ip_addr)){
                 return myUser;
             };
         }else{

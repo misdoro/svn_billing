@@ -85,11 +85,10 @@ void * netflowlistener(void *threadid)
 	//Create vars for packet data
 	pheader * packet = new pheader;
 	flowrecord *records = new flowrecord[30];
-	//user *currentuser=NULL;
+
 	int8_t flow_direction=-1;
 	uint32_t dst_ip;
 	uint16_t dst_port;
-//	user_zone *currentzone;
 	if (bind(sock, (struct sockaddr *)&server, length) < 0)
 	logmsg(DBG_NETFLOW,"Error binding netflow socket");
 	fromlen = sizeof(struct sockaddr_in);
@@ -151,7 +150,7 @@ void * netflowlistener(void *threadid)
                         dst_port = records[n].srcport;
                         flow_direction = 1;
                     }else{
-                        logmsg (DBG_NETFLOW,"IP not found: srcaddr %u, dstaddr %u, starttime %u, endtime %u",records[n].srcaddr,records[n].dstaddr,records[n].starttime,records[n].endtime);
+                        logmsg (DBG_NETFLOW,"IP not found: srcaddr %u, dstaddr %u, starttime %u, endtime %u",records[n].srcaddr,records[n].dstaddr,starttime,endtime);
                         flow_direction = -1;
                         continue;
                     };
@@ -159,9 +158,10 @@ void * netflowlistener(void *threadid)
                     //Save flow data
                     if (flow_direction>=0)
                     {
-                        if (thisuser->updateTraffic(dst_ip,dst_port,records[n].bytecount,flow_direction))
+			uint32_t zgid;
+                        if ((zgid=thisuser->updateTraffic(dst_ip,dst_port,records[n].bytecount,flow_direction))>0)
                         {
-                            logmsg(DBG_NETFLOW,"Record %i: session %u",packet->seq+n, thisuser->getSID());
+                            logmsg(DBG_NETFLOW,"Record %i: session %u, group %u, dst %u, f_dst %u, f_src %u, dir %i",packet->seq+n, thisuser->getSID(),zgid,dst_ip,records[n].dstaddr,records[n].srcaddr,flow_direction);
                         }else{
                             logmsg(DBG_NETFLOW,"Warning! Zone not found! (sid: %u, ip %s, port %u)", thisuser->getSID(), ipFromIntToStr(dst_ip), dst_port);
                         };

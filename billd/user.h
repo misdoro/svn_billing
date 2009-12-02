@@ -73,7 +73,7 @@ class C_user: public thread{
 		uint32_t getSID(void);
 		uint32_t getIP(void);
 
-		bool updateTraffic(uint32_t,uint16_t,uint32_t,int8_t);
+		uint32_t updateTraffic(uint32_t,uint16_t,uint32_t,int8_t);
 
 		void updateStats(MYSQL*);
 
