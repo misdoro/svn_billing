@@ -117,6 +117,10 @@ CREATE TABLE IF NOT EXISTS `price_groups` (
 CREATE TABLE IF NOT EXISTS `price_names` (
 	`id` int unsigned NOT NULL auto_increment,      /*Price ID*/
 	`name` varchar(255) NOT NULL,
+	`active` boolean NOT NULL default 1,
+	`positive_debit` boolean NOT NULL default 1,
+	`fallback_price` int unsigned NOT NULL default 0,
+	`packs_available` boolean NOT NULL default 0,
 	PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
