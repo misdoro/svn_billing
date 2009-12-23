@@ -1,8 +1,8 @@
 # depslib dependency file v1.0
-1259697039 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/Config.cpp
+1261582601 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/Config.cpp
 	"billing.h"
 
-1259694869 /home/doronin/Projects/Cpp/billing/svn-src/billd/billing.h
+1261580621 /home/doronin/Projects/Cpp/billing/svn-src/billd/billing.h
 	<arpa/inet.h>
 	<cstring>
 	<fcntl.h>
@@ -43,8 +43,9 @@
 	"Config.h"
 	"tree.h"
 	"rwLock.h"
+	"periodic.h"
 
-1259438748 /home/doronin/Projects/Cpp/billing/svn-src/billd/Config.h
+1261581067 /home/doronin/Projects/Cpp/billing/svn-src/billd/Config.h
 	"ConfigFile.h"
 	<netinet/in.h>
 	<arpa/inet.h>
@@ -67,7 +68,7 @@
 1206690183 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/ConfigFile.cpp
 	"ConfigFile.h"
 
-1259694931 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/billing.cc
+1261582093 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/billing.cc
 	"billing.h"
 
 1210796694 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/daemonize.cc
@@ -79,13 +80,13 @@
 1259430597 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/mysql.cc
 	"billing.h"
 
-1259698848 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/nas.cpp
+1259716402 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/nas.cpp
 	"billing.h"
 
-1259696841 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/naslist.cpp
+1261576221 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/naslist.cpp
 	"billing.h"
 
-1259679821 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/netflow.cc
+1259716402 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/netflow.cc
 	"billing.h"
 
 1259695023 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/tree.cc
@@ -94,9 +95,9 @@
 1259674547 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/userconnect.cc
 	"billing.h"
 
-1259698419 /home/doronin/Projects/Cpp/billing/svn-src/billd/user.h
+1261577177 /home/doronin/Projects/Cpp/billing/svn-src/billd/user.h
 
-1259706416 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/user.cpp
+1261583541 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/user.cpp
 	"billing.h"
 
 1259419633 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/rwLock.cpp
@@ -222,4 +223,9 @@
 
 1259461731 source:/home/doronin/Projects/svn_billing/billd/threads.cpp
 	"threads.h"
+
+1261583079 /home/doronin/Projects/Cpp/billing/svn-src/billd/periodic.h
+
+1261586068 source:/home/doronin/Projects/Cpp/billing/svn-src/billd/periodic.cpp
+	"billing.h"
 

@@ -1,31 +1,22 @@
-//
-// File:   billing.cc
-// Author: flexx
-//
+//Core file, starting all threads.
 
 #include "billing.h"
 
 using namespace std;
 
-//Define mutexes:
-pthread_mutex_t users_table_m = PTHREAD_MUTEX_INITIALIZER;
 
 //Define global variables:
-//user * firstuser;
-
-// configuration
+//Configuration class
 Config cfg;
-
-//NAS List (top object to all users)
+//NAS List (top object for all NASes, users)
 NASList nases;
 
-//all mutexes are inside their classes
 
 // need to close all files, kill threads e.t.c.
 void end_me (int sig) {
 	logmsg(DBG_ALWAYS,"Terminating application...");
 	cfg.stayalive=false;
-	logmsg(DBG_ALWAYS,"Please wait 30 seconds");
+	logmsg(DBG_ALWAYS,"Please wait some time");
 }
 
 int main(int argc, char** argv) {
@@ -44,7 +35,6 @@ int main(int argc, char** argv) {
     delete[] config_paths;
 	//Init MySQL library:
 	my_init();
-//	makeDBready();
 
 // here - fork application if configuration right
 	if (cfg.do_fork){
@@ -83,15 +73,27 @@ int main(int argc, char** argv) {
 		logmsg(DBG_ALWAYS,"ERROR; return code from pthread_create() is %d\n", rc);
 		exit(-1);
 	}*/
+	//Create periodic thread:
+	C_periodic my_cron;
+	my_cron.start();
+
 
 	if (cfg.do_fork) fflush(stdout);
 	while (cfg.stayalive) sleep(1);
 	logmsg(DBG_THREADS,"Main thread prepares to quit");
     //for (int i=0;i<3;i++) pthread_join(threads[i],NULL);
 
-	sleep(5);
+	//sleep(5);
 	//if (cfg.do_fork) fclose(stdout);
 	mysql_thread_end();
+
+	//Join threads:
+	logmsg(DBG_THREADS,"Wait for periodic thread");
+	my_cron.tryJoin();
+	logmsg(DBG_THREADS,"Wait for events listener thread");
+	pthread_join (threads[0],NULL);
+	logmsg(DBG_THREADS,"Wait for netflow listener thread");
+	pthread_join (threads[1],NULL);
 	mysql_library_end();
 	logmsg(DBG_ALWAYS,"Main thread quits");
 	pthread_exit(NULL);

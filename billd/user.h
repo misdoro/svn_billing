@@ -22,7 +22,6 @@ class C_user: public thread{
 		C_NAS* myNAS;
 
 		pthread_mutex_t user_mutex;
-		pthread_t user_drop_thread;
 
 		struct zone_group {
 			uint32_t id;

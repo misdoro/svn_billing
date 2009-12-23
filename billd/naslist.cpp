@@ -7,13 +7,9 @@
 
 //Constructor. Load NASes from MYSQL
 NASList::NASList (){
-	pthread_mutex_t	mutex = PTHREAD_MUTEX_INITIALIZER;
-
-	list_mutex = mutex;
-	pthread_mutex_t	mutex1 = PTHREAD_MUTEX_INITIALIZER;
-	id_mutex = mutex1;
-	pthread_mutex_t	mutex2 = PTHREAD_MUTEX_INITIALIZER;
-	userSidMutex = mutex2;
+    pthread_mutex_init(&list_mutex,NULL);
+    pthread_mutex_init(&id_mutex,NULL);
+	pthread_mutex_init(&userSidMutex,NULL);
 }
 
 NASList::~NASList(){
@@ -23,6 +19,9 @@ NASList::~NASList(){
         thisnas = nasit->second;
         if (thisnas!=NULL) delete thisnas;
     };
+    pthread_mutex_destroy(&list_mutex);
+    pthread_mutex_destroy(&id_mutex);
+    pthread_mutex_destroy(&userSidMutex);
 }
 
 uint32_t NASList::load(){

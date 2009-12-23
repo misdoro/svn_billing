@@ -30,7 +30,6 @@ bool Config::readconfig(const char* filename){
 		};
 		config.readInto( events_listen_port, "billd_events_port", (uint16_t) 10203);
 		config.readInto( events_threads, "billd_events_threads", (uint16_t) 5);
-		//config.readInto( cfg.events_threads_min, "billd_events_minthreads", (uint16_t) 5);
 		config.readInto( events_timeout, "billd_events_timeout", (uint16_t) 1);
 
 		config.readInto( mysql_server,	"billd_mysql_host",	string("127.0.0.1"));
@@ -48,10 +47,12 @@ bool Config::readconfig(const char* filename){
 		config.readInto( verbose_daemonize,	"billd_debug_daemonize",false);
 		config.readInto( do_fork,		"billd_daemon_mode",	true);
 
-		//config.readInto( mpd_shell_port,	"billd_mpd_shell_port");
-		//config.readInto( mpd_shell_addr,	"billd_mpd_shell_addr");
-		//config.readInto( mpd_shell_user,	"billd_mpd_shell_user");
-		//config.readInto( mpd_shell_pass,	"billd_mpd_shell_pass");
+        int pdh,pdm;
+        config.readInto( pdh,"billd_periodic_daily_hour",(int)0);
+        config.readInto( pdm,"billd_periodic_daily_minute",(int)1);
+        periodicDailyMinute = pdh*60+pdm;
+        config.readInto( periodicDailyMaxLag,"billd_periodic_daily_lag",(uint16_t)120);
+
 
 		config.readInto( logfile,		"billd_log_file",	string("/dev/null"));
 		config.readInto( appendlogs,	"billd_append_logs",	true);

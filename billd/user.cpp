@@ -141,11 +141,11 @@ void C_user::updateStats(MYSQL *sqllink){
         //Check if group changed
         zgstatlock.lockRead();//Mind locks!
         if (group->group_changed){
-            uint64_t inDiff=group->in_diff;
-            uint64_t outDiff=group->out_diff;
             zgstatlock.unlockRead();
             //Clear delta stats:
             zgstatlock.lockWrite();
+            uint64_t inDiff=group->in_diff;
+            uint64_t outDiff=group->out_diff;
             group->in_diff=0;
             group->out_diff=0;
             group->group_changed=0;
@@ -164,7 +164,6 @@ void C_user::updateStats(MYSQL *sqllink){
             sprintf(query, "insert into session_statistics (zone_group_id,session_id,traf_in,traf_out,traf_in_money) values (%i,%i,%lu,%lu,%f);",group->id,this->session_id,inDiff,outDiff,chargedMoneyZ);
             mysql_query(sqllink, query);
 
-
         }else zgstatlock.unlockRead();//Mind locks!
     };
     //Update user's debit:
@@ -172,6 +171,10 @@ void C_user::updateStats(MYSQL *sqllink){
         sprintf(query, "UPDATE users SET debit=debit-%f WHERE id=%u", chargedMoney,this->bill_id);
 		mysql_query(sqllink, query);
     };
+
+    //Update user's 'last active' field:
+    sprintf(query, "UPDATE users SET last_active = CURRENT_TIMESTAMP() where id=%u",this->id);
+    mysql_query(sqllink, query);
 
 }
 

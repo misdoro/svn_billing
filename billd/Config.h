@@ -47,6 +47,12 @@ class Config {
 	uint32_t fs_update_interval;
 	//to remove disconnnected users
 	uint32_t die_time_interval;
+
+	//Periodic tasks:
+	uint16_t periodicDailyMinute;
+	uint16_t periodicDailyMaxLag;
+
+
 	bool debug_locks;
 	bool debug_netflow;
 	bool debug_offload;
