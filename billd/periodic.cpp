@@ -60,22 +60,31 @@ void C_periodic::runDailyTasks(MYSQL* sqllink){
     sprintf(query,"UPDATE users SET active_price=request_price, request_price=0 where request_price>0;");
     status=mysql_query(sqllink,query);
     if (status){
-        logmsg(DBG_THREADS,"can't execute query cause %s",mysql_error(sqllink));
+        logmsg(DBG_ALWAYS,"can't execute query cause %s",mysql_error(sqllink));
     };
     //Set active price to one available at negative debit
 
     //Account money according to users active price
     //Conditional daily fees:
-    sprintf(query,"UPDATE users u, price_fees pf SET u.debit=u.debit-pf.fee WHERE u.active_price = pf.price_id and u.last_active>DATE_ADD(CURRENT_TIMESTAMP(),INTERVAL -1 DAY) AND pf.conditional AND pf.period=1;");
+    //sprintf(query,"UPDATE users u, price_fees pf SET u.debit=u.debit-pf.fee WHERE u.active_price = pf.price_id AND u.last_active>DATE_ADD(CURRENT_TIMESTAMP(),INTERVAL -1 DAY) AND pf.conditional AND pf.period=1;");
+    //Update parent users debit
+    sprintf(query,"UPDATE users u LEFT JOIN price_fees AS pf ON pf.price_id=u.active_price LEFT JOIN users AS up ON up.id=u.parent SET up.debit=up.debit-pf.fee WHERE u.active_price=pf.id AND u.parent AND u.last_active>DATE_ADD(CURRENT_TIMESTAMP(),INTERVAL -1 DAY) AND pf.conditional AND pf.period=1;")
     status=mysql_query(sqllink,query);
     if (status){
-        logmsg(DBG_THREADS,"can't execute query cause %s",mysql_error(sqllink));
+        logmsg(DBG_ALWAYS,"can't execute query cause %s",mysql_error(sqllink));
     };
-    //Unconditional daily fees:
-    sprintf(query,"UPDATE users u, price_fees pf SET u.debit=u.debit-pf.fee WHERE u.active_price = pf.price_id and u.last_active>DATE_ADD(CURRENT_TIMESTAMP(),INTERVAL -1 DAY) AND NOT pf.conditional AND pf.period=1;");
+    //Update self users debit
+    sprintf(query,"UPDATE users u LEFT JOIN price_fees AS pf ON pf.price_id=u.active_price SET u.debit=u.debit-pf.fee WHERE u.active_price=pf.id AND u.parent = NULL AND u.last_active>DATE_ADD(CURRENT_TIMESTAMP(),INTERVAL -1 DAY) AND pf.conditional AND pf.period=1;");
     status=mysql_query(sqllink,query);
     if (status){
-        logmsg(DBG_THREADS,"can't execute query cause %s",mysql_error(sqllink));
+        logmsg(DBG_ALWAYS,"can't execute query cause %s",mysql_error(sqllink));
+    };
+
+    //Unconditional daily fees:
+    sprintf(query,"UPDATE users u, price_fees pf SET u.debit=u.debit-pf.fee WHERE u.active_price = pf.price_id AND NOT pf.conditional AND pf.period=1;");
+    status=mysql_query(sqllink,query);
+    if (status){
+        logmsg(DBG_ALWAYS,"can't execute query cause %s",mysql_error(sqllink));
     };
 
 }
