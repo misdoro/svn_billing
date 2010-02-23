@@ -38,6 +38,8 @@
 		<Unit filename="naslist.cpp" />
 		<Unit filename="naslist.h" />
 		<Unit filename="netflow.cc" />
+		<Unit filename="periodic.cpp" />
+		<Unit filename="periodic.h" />
 		<Unit filename="rwLock.cpp" />
 		<Unit filename="rwLock.h" />
 		<Unit filename="threads.cpp" />
